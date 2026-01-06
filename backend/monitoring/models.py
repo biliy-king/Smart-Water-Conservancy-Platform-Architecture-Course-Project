@@ -125,4 +125,8 @@ class MonitorData(models.Model):
             else:
                 self.status = "normal"
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 后端
         super().save(*args, **kwargs)

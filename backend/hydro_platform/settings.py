@@ -135,10 +135,44 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True#允许所有跨域请求，前后端通讯
+<<<<<<< HEAD
 
 #DRF字典
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],#允许所有权限
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',#分页
     'PAGE_SIZE': 10,#每页10条数据
+=======
+CORS_ALLOW_CREDENTIALS = True# 允许携带凭证（虽然JWT不依赖Cookie，但保留兼容性）
+
+# DRF配置
+REST_FRAMEWORK = {
+    # 【核心1】全局认证：使用JWT认证
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    # 【核心2】全局权限：必须登录才能访问（登录接口除外）
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    # 分页配置
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,  # 每页10条数据
+}
+
+# JWT配置（Token过期时间等）
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    # 访问Token有效期（1小时）
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    # 刷新Token有效期（7天）
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    # Token前缀（前端请求头格式：Authorization: Bearer <token>）
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    # Token刷新后是否轮换（安全性：旧Token失效）
+    'ROTATE_REFRESH_TOKENS': True,
+    # 轮换后是否将旧Token加入黑名单
+    'BLACKLIST_AFTER_ROTATION': False,  # 简化版不启用黑名单
+>>>>>>> 后端
 }
