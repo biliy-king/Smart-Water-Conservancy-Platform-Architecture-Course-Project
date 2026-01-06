@@ -1,20 +1,4 @@
 # users/urls.py
-<<<<<<< HEAD
-# 导入必要模块
-from rest_framework.routers import DefaultRouter
-from django.urls import path, include
-from . import views  # 导入当前APP的views（包含UserProfileViewSet）
-
-# 1. 创建DRF默认路由器
-router = DefaultRouter()
-
-# 2. 注册用户信息ViewSet，路由地址 -> "user-profiles"
-router.register(r"user-profiles", views.UserProfileViewSet)
-
-# 3. 定义当前APP的子路由
-urlpatterns = [
-    path("", include(router.urls)),
-=======
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -26,7 +10,7 @@ from .views import (
 
 # 创建路由器
 router = DefaultRouter()
-router.register(r'profiles', UserProfileViewSet)
+router.register(r'user-profiles', UserProfileViewSet)
 
 urlpatterns = [
     # ========== JWT认证接口 ==========
@@ -36,5 +20,4 @@ urlpatterns = [
     
     # ========== 用户管理接口 ==========
     path('', include(router.urls)),  # /api/users/profiles/
->>>>>>> 后端
 ]

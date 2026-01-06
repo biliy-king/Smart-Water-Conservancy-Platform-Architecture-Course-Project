@@ -1,9 +1,4 @@
 # monitoring/views.py
-<<<<<<< HEAD
-from rest_framework import viewsets
-from .models import MonitorData
-from .serializers import MonitorDataSerializer
-=======
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,15 +7,11 @@ from rest_framework import viewsets
 from .models import MonitorData
 from .serializers import MonitorDataSerializer
 from water_structures.permissions import IsMonitorOrAdminForWrite
->>>>>>> 后端
 
 class MonitorDataViewSet(viewsets.ModelViewSet):
     # 查询所有监测数据，按监测时间倒序排列（最新数据在前）
     queryset = MonitorData.objects.all().order_by("-monitor_time")
     # 关联对应的序列化器
-<<<<<<< HEAD
-    serializer_class = MonitorDataSerializer
-=======
     serializer_class = MonitorDataSerializer
     permission_classes = [IsMonitorOrAdminForWrite]  # monitor/admin可录入数据
 
@@ -136,5 +127,3 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
         data = MonitorDataSerializer(qs, many=True).data
         return Response({"success": True, "data": data})
     
-    
->>>>>>> 后端

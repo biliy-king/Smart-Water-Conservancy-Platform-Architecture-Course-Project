@@ -1,14 +1,4 @@
 # users/views.py
-<<<<<<< HEAD
-from rest_framework import viewsets
-from .models import UserProfile
-from .serializers import UserProfileSerializer
-
-class UserProfileViewSet(viewsets.ModelViewSet):
-    # 查询所有用户信息，按创建时间倒序排列
-    queryset = UserProfile.objects.all().order_by("-create_time")
-    # 关联对应的序列化器
-=======
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -177,5 +167,4 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     - ModelViewSet 自动提供 GET/POST/PUT/DELETE
     """
     queryset = UserProfile.objects.all().order_by("-create_time")
->>>>>>> 后端
     serializer_class = UserProfileSerializer

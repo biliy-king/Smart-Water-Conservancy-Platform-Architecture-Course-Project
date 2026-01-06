@@ -1,4 +1,4 @@
-# 智慧水利数字孪生平台 API 接口文档
+# Smart-Water-Conservancy-Platform API 接口文档
 
 本文档详细说明了智慧水利平台后端API的所有接口、字段定义和使用方法。
 
@@ -8,24 +8,308 @@
 
 **最后更新**: 2026-01-06
 
+**认证方式**: JWT Bearer Token
+
 ---
 
 ## 目录
 
-1. [大坝信息接口](#1-大坝信息接口)
-2. [监测设备接口](#2-监测设备接口)
-3. [监测点接口](#3-监测点接口)
-4. [监测数据接口](#4-监测数据接口)
-5. [用户信息接口](#5-用户信息接口)
-6. [数据校验规则](#6-数据校验规则)
+0. [JWT 认证快速开始](#0-jwt-认证快速开始)
+1. [用户认证接口](#1-用户认证接口)
+2. [大坝信息接口](#2-大坝信息接口)
+3. [监测设备接口](#3-监测设备接口)
+4. [监测点接口](#4-监测点接口)
+5. [监测数据接口](#5-监测数据接口)
+6. [用户信息接口](#6-用户信息接口)
 7. [权限说明](#7-权限说明)
-8. [通用说明](#8-通用说明)
+8. [数据校验规则](#8-数据校验规则)
+9. [通用说明](#9-通用说明)
 
 ---
 
-## 1. 大坝信息接口
+## 0. JWT 认证快速开始
 
-### 1.1 获取大坝列表
+### 认证流程
+
+本平台采用 **JWT Token** 认证机制，所有API（除登录/刷新外）都需要在请求头中携带有效的 Token。
+
+**Token有效期**：
+- **access token**: 1 小时（用于访问受保护接口）
+- **refresh token**: 7 天（用于刷新 access token）
+
+### 前端集成步骤
+
+#### 第1步：用户登录获取Token
+```bash
+POST /api/users/login/
+Content-Type: application/json
+```
+
+**请求体**:
+```json
+{
+  "username": "admin",
+  "password": "password123"
+}
+```
+
+**成功响应 (201 Created)**：
+```json
+{
+  "success": true,
+  "message": "登录成功",
+  "tokens": {
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+  },
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@example.com",
+    "role": "admin"
+  }
+}
+```
+
+**失败响应 (401 Unauthorized)**：
+```json
+{
+  "success": false,
+  "message": "用户名或密码错误",
+  "data": null
+}
+```
+
+#### 第2步：保存Token到本地存储
+```javascript
+// 将返回的 tokens 保存到浏览器
+localStorage.setItem('access_token', response.tokens.access);
+localStorage.setItem('refresh_token', response.tokens.refresh);
+localStorage.setItem('user', JSON.stringify(response.user));
+```
+
+#### 第3步：在请求头中携带Token
+```javascript
+// 所有API请求都需要在请求头中加入 Authorization
+const headers = {
+  'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+  'Content-Type': 'application/json'
+};
+
+// 示例：获取大坝列表
+fetch('/api/water-structures/structures/', {
+  method: 'GET',
+  headers: headers
+});
+```
+
+#### 第4步：处理Token过期（401错误）
+当 access token 过期时，API会返回 401，此时需要调用刷新接口：
+```bash
+POST /api/users/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+}
+```
+
+**成功响应 (200 OK)**：
+```json
+{
+  "success": true,
+  "message": "Token刷新成功",
+  "tokens": {
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+  }
+}
+```
+
+更新本地Token后重新发送原请求。
+
+### Axios 自动化示例
+
+推荐使用Axios的拦截器自动处理Token刷新：
+
+```javascript
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// 请求拦截器：自动添加Token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// 响应拦截器：处理401并自动刷新Token
+api.interceptors.response.use(
+  response => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        const { data } = await axios.post('/api/users/refresh/', {
+          refresh: refreshToken
+        });
+        
+        // 更新Token
+        localStorage.setItem('access_token', data.tokens.access);
+        localStorage.setItem('refresh_token', data.tokens.refresh);
+        
+        // 更新请求头
+        originalRequest.headers['Authorization'] = `Bearer ${data.tokens.access}`;
+        
+        // 重新发送原请求
+        return api(originalRequest);
+      } catch (err) {
+        // 刷新失败，跳转登录页
+        window.location.href = '/login';
+        return Promise.reject(err);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+```
+
+---
+
+## 1. 用户认证接口
+
+### 1.1 用户登录
+
+- **接口**: `POST /api/users/login/`
+- **说明**: 用户名和密码登录，获取JWT Token
+- **认证**: 无（允许匿名）
+- **Content-Type**: `application/json`
+
+**请求体**:
+```json
+{
+  "username": "admin",
+  "password": "password123"
+}
+```
+
+**响应 (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "登录成功",
+  "tokens": {
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  },
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@example.com",
+    "role": "admin"
+  }
+}
+```
+
+**错误响应 (401 Unauthorized)**:
+```json
+{
+  "success": false,
+  "message": "用户名或密码错误",
+  "data": null
+}
+```
+
+### 1.2 刷新Token
+
+- **接口**: `POST /api/users/refresh/`
+- **说明**: 使用 refresh token 获取新的 access token
+- **认证**: 无（允许匿名）
+- **Content-Type**: `application/json`
+
+**请求体**:
+```json
+{
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+**响应 (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Token刷新成功",
+  "tokens": {
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
+
+**错误响应 (400 Bad Request)**:
+```json
+{
+  "success": false,
+  "message": "Refresh token已过期或无效",
+  "data": null
+}
+```
+
+### 1.3 获取当前用户信息
+
+- **接口**: `GET /api/users/current/`
+- **说明**: 获取登录用户的完整信息
+- **认证**: ✅ 需要有效Token (Authorization: Bearer <token>)
+- **Method**: GET
+
+**请求头**:
+```
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+```
+
+**响应 (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "获取用户信息成功",
+  "data": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@example.com",
+    "role": "admin",
+    "department": "技术部",
+    "phone": "13800000000"
+  }
+}
+```
+
+**错误响应 (401 Unauthorized)**:
+```json
+{
+  "detail": "Authentication credentials were not provided."
+}
+```
+
+---
+
+## 2. 大坝信息接口
+
+### 2.1 获取大坝列表
 - **接口**: `GET /api/water-structures/structures/`
 - **说明**: 获取所有大坝信息（按创建时间倒序）
 - **分页参数**: 
@@ -77,14 +361,14 @@
 }
 ```
 
-### 1.2 获取单个大坝详情
+### 2.2 获取单个大坝详情
 - **接口**: `GET /api/water-structures/structures/{id}/`
 - **说明**: 获取指定ID的大坝详细信息
 - **路径参数**: 
   - `id`: 大坝ID（必填）
 - **响应**: 单个大坝完整信息（字段同上）
 
-### 1.3 创建新大坝
+### 2.3 创建新大坝
 - **接口**: `POST /api/water-structures/structures/`
 - **说明**: 新增大坝信息
 - **Content-Type**: `application/json`
@@ -106,14 +390,14 @@
 ```
 - **响应**: 返回创建的大坝完整信息（包含自动生成的id和create_time）
 
-### 1.4 更新大坝信息
+### 2.4 更新大坝信息
 - **接口**: `PUT /api/water-structures/structures/{id}/`
 - **说明**: 更新指定大坝的完整信息
 - **路径参数**: `id` - 大坝ID
 - **请求体**: 同创建接口（需提供所有必填字段）
 - **响应**: 返回更新后的大坝完整信息
 
-### 1.5 删除大坝
+### 2.5 删除大坝
 - **接口**: `DELETE /api/water-structures/structures/{id}/`
 - **说明**: 删除指定大坝（同时会删除关联的所有设备、监测点和监测数据）
 - **路径参数**: `id` - 大坝ID
@@ -522,9 +806,9 @@
 
 ---
 
-## 5. 用户信息接口
+## 6. 用户信息接口
 
-### 5.1 获取用户列表
+### 6.1 获取用户列表
 - **接口**: `GET /api/users/user-profiles/`
 - **说明**: 获取所有用户档案
 - **查询参数**: 
@@ -571,13 +855,13 @@
 }
 ```
 
-### 5.2 获取单个用户档案
+### 6.2 获取单个用户档案
 - **接口**: `GET /api/users/user-profiles/{id}/`
 - **说明**: 获取指定ID的用户档案详细信息
 - **路径参数**: `id` - 用户档案ID
 - **响应**: 单个用户档案完整信息
 
-### 5.3 创建用户档案
+### 6.3 创建用户档案
 - **接口**: `POST /api/users/user-profiles/`
 - **说明**: 创建新用户档案
 - **Content-Type**: `application/json`
@@ -599,94 +883,18 @@
 
 - **响应**: 返回创建的用户档案完整信息（包含user_basic_info）
 
-### 5.4 更新用户信息
+### 6.4 更新用户信息
 - **接口**: `PUT /api/users/user-profiles/{id}/`
 - **说明**: 更新指定用户档案的完整信息
 - **路径参数**: `id` - 用户档案ID
 - **请求体**: 同创建接口
 - **响应**: 返回更新后的用户档案完整信息
 
-### 5.5 删除用户档案
+### 6.5 删除用户档案
 - **接口**: `DELETE /api/users/user-profiles/{id}/`
 - **说明**: 删除指定用户档案（不会删除关联的User，只删除档案信息）
 - **路径参数**: `id` - 用户档案ID
 - **响应**: `204 No Content`
-
----
-
-## 6. 数据校验规则
-
-为保证数据质量和系统稳定性，所有接口在数据录入时会进行以下校验：
-
-### 6.1 大坝信息校验
-
-| 字段 | 校验规则 | 错误提示 |
-|------|---------|----------|
-| name | 必填，长度1-100字符 | "大坝名称不能为空" / "名称长度不能超过100字符" |
-| cesium_center_x | 必填，数值型 | "X坐标必须为有效数值" |
-| cesium_center_y | 必填，数值型 | "Y坐标必须为有效数值" |
-| cesium_center_z | 必填，数值型，建议范围：-100 ~ 5000米 | "Z坐标（高程）超出合理范围" |
-| cesium_heading | 数值型，范围：0 ~ 360度 | "航向角必须在0-360度之间" |
-| cesium_pitch | 数值型，范围：-90 ~ 90度 | "俯仰角必须在-90至90度之间" |
-| cesium_roll | 数值型，范围：-180 ~ 180度 | "翻滚角必须在-180至180度之间" |
-| cesium_scale | 数值型，范围：0.01 ~ 100 | "缩放比例必须在0.01-100之间" |
-| completion_time | 日期格式，不能晚于当前日期 | "建成时间不能是未来日期" |
-
-### 6.2 监测设备校验
-
-| 字段 | 校验规则 | 错误提示 |
-|------|---------|----------|
-| structure | 必填，必须是已存在的大坝ID | "所属大坝不存在" |
-| device_name | 必填，长度1-100字符 | "设备名称不能为空" |
-| device_type | 必填，必须是6种类型之一 | "设备类型无效" |
-| install_position | 必填，长度1-200字符 | "安装位置不能为空" |
-| install_time | 日期格式，不能晚于当前日期 | "安装时间不能是未来日期" |
-| device_status | 必须是4种状态之一 | "设备状态无效" |
-
-### 6.3 监测点校验
-
-| 字段 | 校验规则 | 错误提示 |
-|------|---------|----------|
-| device | 必填，必须是已存在的设备ID | "所属设备不存在" |
-| point_code | 必填，全局唯一，长度1-50字符 | "测点编号已存在" / "测点编号不能为空" |
-| relative_x | 必填，数值型，建议范围：-500 ~ 500米 | "X偏移量超出合理范围" |
-| relative_y | 必填，数值型，建议范围：-500 ~ 500米 | "Y偏移量超出合理范围" |
-| relative_z | 必填，数值型，建议范围：-100 ~ 100米 | "Z偏移量超出合理范围" |
-| displacement_upper | 数值型，建议范围：-1000 ~ 1000 mm | "位移上限阈值超出合理范围" |
-| displacement_lower | 数值型，建议范围：-1000 ~ 1000 mm | "位移下限阈值超出合理范围" |
-| settlement_upper | 数值型，建议范围：-1000 ~ 1000 mm | "沉降上限阈值超出合理范围" |
-| settlement_lower | 数值型，建议范围：-1000 ~ 1000 mm | "沉降下限阈值超出合理范围" |
-| water_level_upper | 数值型，建议范围：0 ~ 500 m | "水位上限阈值超出合理范围" |
-| water_level_lower | 数值型，建议范围：0 ~ 500 m | "水位下限阈值超出合理范围" |
-
-### 6.4 监测数据校验
-
-| 字段 | 校验规则 | 错误提示 |
-|------|---------|----------|
-| point | 必填，必须是已存在的监测点ID | "监测点不存在" |
-| monitor_time | 必填，**不能是未来时间** | "不能录入未来时间的监测数据" |
-| 唯一性约束 | 同一监测点同一时间只能有一条数据 | "该监测点在此时间已有数据记录" |
-| inverted_plumb_up_down | 数值型，建议范围：-1000 ~ 1000 mm | "位移值超出合理范围" |
-| inverted_plumb_left_right | 数值型，建议范围：-1000 ~ 1000 mm | "位移值超出合理范围" |
-| tension_wire_up_down | 数值型，建议范围：-1000 ~ 1000 mm | "位移值超出合理范围" |
-| hydrostatic_leveling_settlement | 数值型，建议范围：-1000 ~ 1000 mm | "沉降值超出合理范围" |
-| water_level_upstream | 数值型，建议范围：0 ~ 500 m | "水位值超出合理范围" |
-| water_level_downstream | 数值型，建议范围：0 ~ 500 m | "水位值超出合理范围" |
-| 监测值要求 | 至少填写一个监测值字段 | "至少需要填写一项监测数据" |
-
-### 6.5 用户档案校验
-
-| 字段 | 校验规则 | 错误提示 |
-|------|---------|----------|
-| user | 必填，必须是已存在的User ID，一对一关系 | "用户不存在" / "该用户已有档案" |
-| role | 必填，必须是3种角色之一 | "用户角色无效" |
-| phone | 手机号格式（可选），11位数字 | "手机号格式不正确" |
-| department | 长度不超过100字符 | "部门名称过长" |
-
-**说明**:
-- 所有"建议范围"为软性限制，超出范围会记录警告日志但不阻止录入
-- 可通过系统配置调整各项阈值的具体数值
-- 批量操作时，任何一条数据校验失败会导致整批数据回滚
 
 ---
 
@@ -699,7 +907,7 @@
 | 角色 | 说明 | 典型用户 |
 |------|------|----------|
 | **admin** | 系统管理员 | 技术负责人、系统维护人员 |
-| **monitor** | 监测员 | 现场监测人员、数据录入员 |
+| **monitor** | 监测员 | 现场监测、数据录入人员 |
 | **viewer** | 访客/查看者 | 领导、外部审查人员 |
 
 ### 7.2 接口权限矩阵
@@ -720,11 +928,9 @@
 |------|------|-------|---------|--------|
 | 查看设备列表 | GET /devices/ | ✅ | ✅ | ✅ |
 | 查看设备详情 | GET /devices/{id}/ | ✅ | ✅ | ✅ |
-| 创建设备 | POST /devices/ | ✅ | ⚠️ | ❌ |
-| 更新设备 | PUT /devices/{id}/ | ✅ | ⚠️ | ❌ |
-| 删除设备 | DELETE /devices/{id}/ | ✅ | ❌ | ❌ |
-
-**说明**: ⚠️ monitor角色建议仅允许更新设备状态，不允许修改设备基础信息
+| 创建设备 | POST /devices/ | ✅ | ✅ | ❌ |
+| 更新设备 | PUT /devices/{id}/ | ✅ | ✅ | ❌ |
+| 删除设备 | DELETE /devices/{id}/ | ✅ | ✅ | ❌ |
 
 #### 监测点接口
 
@@ -732,11 +938,9 @@
 |------|------|-------|---------|--------|
 | 查看监测点列表 | GET /points/ | ✅ | ✅ | ✅ |
 | 查看监测点详情 | GET /points/{id}/ | ✅ | ✅ | ✅ |
-| 创建监测点 | POST /points/ | ✅ | ⚠️ | ❌ |
-| 更新监测点 | PUT /points/{id}/ | ✅ | ⚠️ | ❌ |
-| 删除监测点 | DELETE /points/{id}/ | ✅ | ❌ | ❌ |
-
-**说明**: ⚠️ monitor角色建议仅允许更新监测点的阈值设置，不允许修改坐标等基础信息
+| 创建监测点 | POST /points/ | ✅ | ✅ | ❌ |
+| 更新监测点 | PUT /points/{id}/ | ✅ | ✅ | ❌ |
+| 删除监测点 | DELETE /points/{id}/ | ✅ | ✅ | ❌ |
 
 #### 监测数据接口
 
@@ -747,54 +951,116 @@
 | 新增监测数据 | POST /monitor-datas/ | ✅ | ✅ | ❌ |
 | 批量新增数据 | POST /monitor-datas/batch/ | ✅ | ✅ | ❌ |
 | 更新监测数据 | PUT /monitor-datas/{id}/ | ✅ | ✅ | ❌ |
-| 删除监测数据 | DELETE /monitor-datas/{id}/ | ✅ | ❌ | ❌ |
-
-**说明**: monitor角色可以新增和修改监测数据（核心职责），但不能删除
+| 删除监测数据 | DELETE /monitor-datas/{id}/ | ✅ | ✅ | ❌ |
 
 #### 用户信息接口
 
 | 操作 | 接口 | admin | monitor | viewer |
 |------|------|-------|---------|--------|
-| 查看用户列表 | GET /user-profiles/ | ✅ | ❌ | ❌ |
-| 查看用户详情 | GET /user-profiles/{id}/ | ✅ | ⚠️ | ⚠️ |
+| 查看用户列表 | GET /user-profiles/ | ✅ | ✅ | ✅ |
+| 查看用户详情 | GET /user-profiles/{id}/ | ✅ | ✅ | ✅ |
 | 创建用户档案 | POST /user-profiles/ | ✅ | ❌ | ❌ |
-| 更新用户信息 | PUT /user-profiles/{id}/ | ✅ | ⚠️ | ❌ |
+| 更新用户信息 | PUT /user-profiles/{id}/ | ✅ | ❌ | ❌ |
 | 删除用户档案 | DELETE /user-profiles/{id}/ | ✅ | ❌ | ❌ |
 
-**说明**: ⚠️ monitor和viewer仅能查看和修改自己的档案信息
+**说明**: 上表基于后端权限策略；前端可在UI层做相应按钮的显隐与禁用。
 
 ### 7.3 权限实现建议
 
-**课程设计阶段**:
-- 可暂不实现严格的权限控制，接口对所有登录用户开放
-- 在API文档中标注权限要求，作为设计说明
-- 前端可根据用户角色隐藏/禁用相应操作按钮
-
-**生产环境建议**:
-1. 使用Django REST Framework的权限类（Permission Classes）
-2. 实现自定义权限类，根据用户角色限制操作
-3. 关键操作（删除、批量操作）增加二次确认机制
-4. 记录操作日志（谁在何时对哪条数据做了什么操作）
-
-**数据隔离建议**（可选）:
-- 如一个系统管理多个大坝，可按大坝/部门隔离数据访问权限
-- monitor角色仅能操作本部门负责的大坝相关数据
-- 通过重写queryset的`get_queryset()`方法实现数据过滤
+- 课程设计阶段：如未完全接入权限，可保持文档声明并在前端控制入口。
+- 生产环境：使用 DRF Permission Classes，自定义按角色放行；删除/批量操作建议二次确认并记录操作日志。
+- 数据隔离（可选）：如多大坝/多部门，可在 `get_queryset()` 中按用户部门过滤。
 
 ---
 
-## 8. 通用说明
+## 8. 数据校验规则
 
-### 6.1 分页格式
+为保证数据质量和系统稳定性，所有接口在数据录入时会进行以下校验：
+
+### 8.1 大坝信息校验
+
+| 字段 | 校验规则 | 错误提示 |
+|------|---------|----------|
+| name | 必填，长度1-100字符 | "大坝名称不能为空" / "名称长度不能超过100字符" |
+| cesium_center_x | 必填，数值型 | "X坐标必须为有效数值" |
+| cesium_center_y | 必填，数值型 | "Y坐标必须为有效数值" |
+| cesium_center_z | 必填，数值型，建议范围：-100 ~ 5000米 | "Z坐标（高程）超出合理范围" |
+| cesium_heading | 数值型，范围：0 ~ 360度 | "航向角必须在0-360度之间" |
+| cesium_pitch | 数值型，范围：-90 ~ 90度 | "俯仰角必须在-90至90度之间" |
+| cesium_roll | 数值型，范围：-180 ~ 180度 | "翻滚角必须在-180至180度之间" |
+| cesium_scale | 数值型，范围：0.01 ~ 100 | "缩放比例必须在0.01-100之间" |
+| completion_time | 日期格式，不能晚于当前日期 | "建成时间不能是未来日期" |
+
+### 8.2 监测设备校验
+
+| 字段 | 校验规则 | 错误提示 |
+|------|---------|----------|
+| structure | 必填，必须是已存在的大坝ID | "所属大坝不存在" |
+| device_name | 必填，长度1-100字符 | "设备名称不能为空" |
+| device_type | 必填，必须是6种类型之一 | "设备类型无效" |
+| install_position | 必填，长度1-200字符 | "安装位置不能为空" |
+| install_time | 日期格式，不能晚于当前日期 | "安装时间不能是未来日期" |
+| device_status | 必须是4种状态之一 | "设备状态无效" |
+
+### 8.3 监测点校验
+
+| 字段 | 校验规则 | 错误提示 |
+|------|---------|----------|
+| device | 必填，必须是已存在的设备ID | "所属设备不存在" |
+| point_code | 必填，全局唯一，长度1-50字符 | "测点编号已存在" / "测点编号不能为空" |
+| relative_x | 必填，数值型，建议范围：-500 ~ 500米 | "X偏移量超出合理范围" |
+| relative_y | 必填，数值型，建议范围：-500 ~ 500米 | "Y偏移量超出合理范围" |
+| relative_z | 必填，数值型，建议范围：-100 ~ 100米 | "Z偏移量超出合理范围" |
+| displacement_upper | 数值型，建议范围：-1000 ~ 1000 mm | "位移上限阈值超出合理范围" |
+| displacement_lower | 数值型，建议范围：-1000 ~ 1000 mm | "位移下限阈值超出合理范围" |
+| settlement_upper | 数值型，建议范围：-1000 ~ 1000 mm | "沉降上限阈值超出合理范围" |
+| settlement_lower | 数值型，建议范围：-1000 ~ 1000 mm | "沉降下限阈值超出合理范围" |
+| water_level_upper | 数值型，建议范围：0 ~ 500 m | "水位上限阈值超出合理范围" |
+| water_level_lower | 数值型，建议范围：0 ~ 500 m | "水位下限阈值超出合理范围" |
+
+### 8.4 监测数据校验
+
+| 字段 | 校验规则 | 错误提示 |
+|------|---------|----------|
+| point | 必填，必须是已存在的监测点ID | "监测点不存在" |
+| monitor_time | 必填，**不能是未来时间** | "不能录入未来时间的监测数据" |
+| 唯一性约束 | 同一监测点同一时间只能有一条数据 | "该监测点在此时间已有数据记录" |
+| inverted_plumb_up_down | 数值型，建议范围：-1000 ~ 1000 mm | "位移值超出合理范围" |
+| inverted_plumb_left_right | 数值型，建议范围：-1000 ~ 1000 mm | "位移值超出合理范围" |
+| tension_wire_up_down | 数值型，建议范围：-1000 ~ 1000 mm | "位移值超出合理范围" |
+| hydrostatic_leveling_settlement | 数值型，建议范围：-1000 ~ 1000 mm | "沉降值超出合理范围" |
+| water_level_upstream | 数值型，建议范围：0 ~ 500 m | "水位值超出合理范围" |
+| water_level_downstream | 数值型，建议范围：0 ~ 500 m | "水位值超出合理范围" |
+| 监测值要求 | 至少填写一个监测值字段 | "至少需要填写一项监测数据" |
+
+### 8.5 用户档案校验
+
+| 字段 | 校验规则 | 错误提示 |
+|------|---------|----------|
+| user | 必填，必须是已存在的User ID，一对一关系 | "用户不存在" / "该用户已有档案" |
+| role | 必填，必须是3种角色之一 | "用户角色无效" |
+| phone | 手机号格式（可选），11位数字 | "手机号格式不正确" |
+| department | 长度不超过100字符 | "部门名称过长" |
+
+**说明**:
+- 所有"建议范围"为软性限制，超出范围会记录警告日志但不阻止录入
+- 可通过系统配置调整各项阈值的具体数值
+- 批量操作时，任何一条数据校验失败会导致整批数据回滚
+
+---
+
+## 9. 通用说明
+
+### 9.1 分页格式
 
 所有列表接口都支持分页，响应格式如下：
 
 ```json
 {
-  "count": 100,                    // 总记录数
-  "next": "URL",                   // 下一页URL（如果有）
-  "previous": "URL",               // 上一页URL（如果有）
-  "results": []                    // 当前页数据数组
+  "count": 100,
+  "next": "URL",
+  "previous": "URL",
+  "results": []
 }
 ```
 
@@ -802,7 +1068,7 @@
 - `page`: 页码（从1开始）
 - `page_size`: 每页数量（默认10，最大100）
 
-### 6.2 HTTP状态码
+### 9.2 HTTP状态码
 
 | 状态码 | 含义 |
 |--------|------|
@@ -813,9 +1079,7 @@
 | 404 Not Found | 资源不存在（ID不存在） |
 | 500 Internal Server Error | 服务器内部错误 |
 
-### 6.3 错误响应格式
-
-所有接口在出错时返回以下格式：
+### 9.3 错误响应格式
 
 ```json
 {
@@ -834,14 +1098,50 @@
 }
 ```
 
-### 6.4 时间格式
-
-系统支持两种时间格式：
+### 9.4 时间格式
 
 1. **ISO 8601格式** (推荐): `2026-01-06T10:00:00Z`
 2. **常规格式**: `2026-01-06 10:00:00`
 
-### 6.5 前端调用示例
+### 9.5 前端调用示例（Axios）
+
+```javascript
+// 1. 获取所有监测点（包含Cesium坐标）
+axios.get('http://localhost:8000/api/water-structures/points/')
+  .then(response => {
+    const points = response.data.results;
+    points.forEach(point => {
+      console.log(`测点 ${point.point_code} 的Cesium坐标:`, point.cesium_world_coords);
+    });
+  });
+
+// 2. 新增监测数据
+axios.post('http://localhost:8000/api/monitoring/monitor-datas/', {
+  point: 1,
+  monitor_time: '2026-01-06T10:00:00Z',
+  inverted_plumb_up_down: 3.2,
+  monitor_person: '李四'
+})
+  .then(response => {
+    console.log('新增成功，预警状态:', response.data.status);
+  })
+  .catch(error => {
+    console.error('错误:', error.response.data);
+  });
+
+// 3. 获取分页 + 过滤
+axios.get('http://localhost:8000/api/monitoring/monitor-datas/', {
+  params: {
+    page: 1,
+    page_size: 20,
+    status: 'warning'
+  }
+})
+  .then(response => {
+    console.log('总数:', response.data.count);
+    console.log('预警数据:', response.data.results);
+  });
+```
 
 #### JavaScript (Axios)
 

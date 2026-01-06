@@ -15,9 +15,6 @@ class MonitorDataSerializer(serializers.ModelSerializer):
         fields = "__all__"
         # 关键：标记自动生成/自动计算的字段为只读，禁止前端修改
         # status：由save方法自动判断；create_time：自动生成，均无需手动干预
-<<<<<<< HEAD
-        read_only_fields = ("status", "create_time")
-=======
         read_only_fields = ("status", "create_time")
 
     #增加数据校验逻辑
@@ -91,4 +88,3 @@ class MonitorDataSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"测点「{point.point_code}」在「{monitor_time}」已被其他数据占用")
 
         return attrs
->>>>>>> 后端
