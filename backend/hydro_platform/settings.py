@@ -37,9 +37,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    #自己添加的三个应用users，water_structures,monitoring
+    # users：用户管理（登录、权限、个人信息）
+    # water_structures：	水利设施基础数据管理（静态数据）
+    # monitoring：监测数据管理 + 大屏数据支持（动态数据）
+    'users.apps.UsersConfig',
+    'water_structures.apps.WaterStructuresConfig',
+    'monitoring.apps.MonitoringConfig',
+
+    # 注册DRF
+    'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -102,9 +115,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'#设置中文
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'#设置为上海时区
 
 USE_I18N = True
 
@@ -120,3 +133,12 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOW_ALL_ORIGINS = True#允许所有跨域请求，前后端通讯
+
+#DRF字典
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],#允许所有权限
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',#分页
+    'PAGE_SIZE': 10,#每页10条数据
+}
