@@ -2,6 +2,7 @@
 from rest_framework import viewsets
 from .models import Structure, MonitoringDevice, Point
 from .serializers import StructureSerializer, MonitoringDeviceSerializer, PointSerializer
+from .permissions import IsAdminOrReadOnly, IsMonitorOrAdminForWrite
 
 # 大坝视图集（加载Cesium大坝模型的核心接口）
 class StructureViewSet(viewsets.ModelViewSet):
@@ -9,6 +10,7 @@ class StructureViewSet(viewsets.ModelViewSet):
     queryset = Structure.objects.all().order_by("-id")  # 按id倒序，最新创建的大坝在前
     # 关联大坝序列化器
     serializer_class = StructureSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
 # 监测设备视图集（完善数据关联，方便前端排查）
 class MonitoringDeviceViewSet(viewsets.ModelViewSet):
@@ -16,6 +18,7 @@ class MonitoringDeviceViewSet(viewsets.ModelViewSet):
     queryset = MonitoringDevice.objects.all().order_by("device_name")
     # 关联设备序列化器
     serializer_class = MonitoringDeviceSerializer
+    permission_classes = [IsMonitorOrAdminForWrite]
 
 # 测点视图集（核心，对接Cesium布置测点）
 class PointViewSet(viewsets.ModelViewSet):
@@ -23,3 +26,4 @@ class PointViewSet(viewsets.ModelViewSet):
     queryset = Point.objects.all().order_by("point_code")
     # 关联测点序列化器
     serializer_class = PointSerializer
+    permission_classes = [IsMonitorOrAdminForWrite]
