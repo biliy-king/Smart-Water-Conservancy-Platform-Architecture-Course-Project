@@ -15,6 +15,45 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
     serializer_class = MonitorDataSerializer
     permission_classes = [IsMonitorOrAdminForWrite]  # monitor/admin可录入数据
 
+    def create(self, request, *args, **kwargs):
+        """新增监测数据，统一返回格式"""
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response({
+                "success": True,
+                "message": "监测数据录入成功",
+                "data": serializer.data
+            }, status=201)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"监测数据录入失败：{str(e)}",
+                "data": None
+            }, status=400)
+
+    def update(self, request, *args, **kwargs):
+        """修改监测数据，统一返回格式"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response({
+                "success": True,
+                "message": "监测数据修改成功",
+                "data": serializer.data
+            })
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"监测数据修改失败：{str(e)}",
+                "data": None
+            }, status=400)
+
+
     # 实时数据：每个测点最新一条，支持按大坝/测点筛选，供大屏实时面板
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def latest_data(self, request):
@@ -87,3 +126,5 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
 
         data = MonitorDataSerializer(qs, many=True).data
         return Response({"success": True, "data": data})
+    
+    
