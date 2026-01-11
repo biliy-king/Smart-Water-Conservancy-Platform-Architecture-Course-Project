@@ -1,0 +1,38 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.log
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Django artifacts
+/staticfiles/
+/media/
+*.sqlite3
+db.sqlite3
+
+# Env / secrets
+.env
+.env.*
+.env.local
+
+# Build outputs
+build/
+dist/
+
+# Frontend artifacts (dup-safe with frontend/.gitignore)
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Editors
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store

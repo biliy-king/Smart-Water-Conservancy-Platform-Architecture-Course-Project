@@ -1,16 +1,20 @@
-# monitoring/urls.py
-# 导入必要模块
-from rest_framework.routers import DefaultRouter
 from django.urls import path, include
-from . import views  # 导入当前APP的views（包含MonitorDataViewSet）
+from rest_framework.routers import DefaultRouter
+from . import views
 
-# 1. 创建DRF默认路由器
 router = DefaultRouter()
+router.register(r'data', views.MonitorDataViewSet, basename='monitordata')
 
-# 2. 注册监测数据ViewSet，路由地址 -> "monitor-datas"
-router.register(r"monitor-datas", views.MonitorDataViewSet)
-
-# 3. 定义当前APP的子路由
 urlpatterns = [
-    path("", include(router.urls)),
+    path('', include(router.urls)),
+    
+    # 虚拟实时接口
+    path('latest/', views.get_latest_data, name='latest-all'),
+    path('latest/<int:point_id>/', views.get_latest_data, name='latest-detail'),
+    path('history/<int:point_id>/', views.get_history_data, name='history'),
+    path('alerts/', views.get_alert_summary, name='alerts'),
+    path('statistics/', views.statistics_view, name='statistics'),  # GET /api/monitoring/statistics/
+    
+    # 健康检查
+    path('health/', views.health_check, name='health'),
 ]

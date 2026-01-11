@@ -2,6 +2,10 @@
 from rest_framework import viewsets
 from .models import Structure, MonitoringDevice, Point
 from .serializers import StructureSerializer, MonitoringDeviceSerializer, PointSerializer
+from .permissions import IsAdminOrReadOnly, IsMonitorOrAdminForWrite
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .serializers import PointSerializer, ThresholdSerializer
 
 # 大坝视图集（加载Cesium大坝模型的核心接口）
 class StructureViewSet(viewsets.ModelViewSet):
@@ -9,6 +13,7 @@ class StructureViewSet(viewsets.ModelViewSet):
     queryset = Structure.objects.all().order_by("-id")  # 按id倒序，最新创建的大坝在前
     # 关联大坝序列化器
     serializer_class = StructureSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
 # 监测设备视图集（完善数据关联，方便前端排查）
 class MonitoringDeviceViewSet(viewsets.ModelViewSet):
@@ -16,6 +21,7 @@ class MonitoringDeviceViewSet(viewsets.ModelViewSet):
     queryset = MonitoringDevice.objects.all().order_by("device_name")
     # 关联设备序列化器
     serializer_class = MonitoringDeviceSerializer
+    permission_classes = [IsMonitorOrAdminForWrite]
 
 # 测点视图集（核心，对接Cesium布置测点）
 class PointViewSet(viewsets.ModelViewSet):
@@ -23,3 +29,23 @@ class PointViewSet(viewsets.ModelViewSet):
     queryset = Point.objects.all().order_by("point_code")
     # 关联测点序列化器
     serializer_class = PointSerializer
+    permission_classes = [IsMonitorOrAdminForWrite]
+    
+    @action(detail=True, methods=['get', 'put'], serializer_class=ThresholdSerializer)
+    def thresholds(self, request, pk=None):
+        """
+        获取或修改单个测点的告警阈值
+        GET /api/water-structures/points/{id}/thresholds/ - 获取阈值
+        PUT /api/water-structures/points/{id}/thresholds/ - 修改阈值
+        """
+        point = self.get_object()
+        
+        if request.method == 'GET':
+            serializer = self.get_serializer(point)
+            return Response(serializer.data)
+        
+        elif request.method == 'PUT':
+            serializer = self.get_serializer(point, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
