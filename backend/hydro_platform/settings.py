@@ -87,8 +87,16 @@ WSGI_APPLICATION = 'hydro_platform.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'hydro_platform',  # 数据库名
+        'USER': 'root',            # MySQL 用户名
+        'PASSWORD': '2004.11.01+LJH',    # MySQL 密码
+        'HOST': 'localhost',       # MySQL 服务器地址
+        'PORT': '3306',            # MySQL 端口
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
     }
 }
 
