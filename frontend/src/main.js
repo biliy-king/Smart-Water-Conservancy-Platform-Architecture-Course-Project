@@ -1,9 +1,11 @@
 import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+import * as echarts from 'echarts'
 import App from './App.vue'
+import './assets/base.css'
 
-// 设置 Cesium 访问令牌
-if (window.Cesium) {
-  window.Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkN2Y0YzciLCJpZCI6MjAzOTIsInNjb3BlcyI6WyJhc3IiLCJnYyJdLCJpYXQiOjE1NzE4NTI0ODJ9.t-p1cTU0TLmtdKXQ-4WEsG2qWlP6CbMkQCFaBqOjZ-w';
-}
-
-createApp(App).mount('#app')
+const app = createApp(App)
+app.use(ElementPlus)
+app.config.globalProperties.$echarts = echarts
+app.mount('#app')
