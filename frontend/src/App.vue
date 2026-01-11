@@ -1,89 +1,75 @@
 <template>
-  <div class="main-dashboard">
+  <div class="tech-screen-root screen-bg">
     <!-- 顶部导航栏 -->
-    <header class="dashboard-header">
-      <div class="dashboard-title">青山水电站防汛安全在线监控系统</div>
-      <div class="dashboard-info">
+    <header class="tech-header screen-header">
+      <div class="tech-title screen-title">数字孪生可视化系统</div>
+      <div class="tech-switch screen-switch">
+        <el-button :type="activeTab==='scene'?'primary':'default'" class="screen-btn" @click="activeTab='scene'">全球总览</el-button>
+        <el-button :type="activeTab==='database'?'primary':'default'" class="screen-btn" @click="activeTab='database'">城市数据</el-button>
+      </div>
+      <div class="tech-info screen-info">
         <span>{{ currentTime }}</span>
-        <span class="dashboard-user">管理员</span>
+        <span class="tech-user screen-user">管理员</span>
       </div>
     </header>
 
-    <div class="dashboard-body">
-      <!-- 左侧菜单 -->
-      <aside class="dashboard-sidebar">
-        <el-menu default-active="1" class="el-menu-vertical">
-          <el-sub-menu index="1">
-            <template #title>三维场景模型</template>
-            <el-menu-item index="1-1">开闸状态</el-menu-item>
-            <el-menu-item index="1-2">开闸模型</el-menu-item>
-            <el-menu-item index="1-3">开闸参数</el-menu-item>
-            <el-menu-item index="1-4">压力监测</el-menu-item>
-            <el-menu-item index="1-5">流量监测</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="2">
-            <template #title>功能角度</template>
-            <el-menu-item index="2-1">常视角</el-menu-item>
-            <el-menu-item index="2-2">功能角</el-menu-item>
-            <el-menu-item index="2-3">场景角</el-menu-item>
-          </el-sub-menu>
-        </el-menu>
+    <div v-if="activeTab==='scene'" class="tech-body screen-body screen-monitor-layout">
+      <!-- 左侧菜单区（缩窄，仅一栏） -->
+      <aside class="screen-side screen-side-left screen-menu-narrow">
+        <el-card class="screen-card" shadow="hover">
+          <div class="screen-card-title">三维场景模型</div>
+          <el-menu default-active="1" class="screen-menu-list" background-color="#0a2a4a" text-color="#fff" active-text-color="#00eaff">
+            <el-menu-item index="1">开关状态</el-menu-item>
+            <el-menu-item index="2">开关监测</el-menu-item>
+            <el-menu-item index="3">开关分析</el-menu-item>
+          </el-menu>
+        </el-card>
       </aside>
 
-      <!-- 中间Cesium场景 -->
-      <main class="dashboard-main">
+      <!-- 中间Cesium三维场景铺满 -->
+      <main class="screen-main screen-cesium-full">
         <CesiumScene />
       </main>
 
-      <!-- 右侧数据面板 -->
-      <aside class="dashboard-panel">
-        <el-card class="panel-card" shadow="hover">
-          <div class="panel-title">实时数据</div>
-          <el-table :data="tableData" style="width: 100%">
+      <!-- 右侧测点数据表（缩窄，仅一栏） -->
+      <aside class="screen-side screen-side-right screen-status-narrow">
+        <el-card class="screen-card" shadow="hover">
+          <div class="screen-card-title">测点数据</div>
+          <el-table :data="tableData" style="width:100%" height="320">
             <el-table-column prop="name" label="测点" width="80" />
             <el-table-column prop="date" label="日期" width="120" />
             <el-table-column prop="value" label="测值(mm)" width="80" />
           </el-table>
-        </el-card>
-        <el-card class="panel-card" shadow="hover">
-          <div class="panel-title">实时数据
-            <el-button type="primary" size="small" style="float:right" @click="dialogVisible = true">添加测点</el-button>
-          </div>
-          <el-table :data="tableData" style="width: 100%">
-            <el-table-column prop="name" label="测点" width="80" />
-            <el-table-column prop="date" label="日期" width="120" />
-            <el-table-column prop="value" label="测值(mm)" width="80" />
-          </el-table>
-        </el-card>
-        <el-dialog v-model="dialogVisible" title="添加测点" width="360px">
-          <el-form :model="newPoint" label-width="60px">
-            <el-form-item label="测点">
-              <el-input v-model="newPoint.name" placeholder="如EX1" />
-            </el-form-item>
-            <el-form-item label="日期">
-              <el-date-picker v-model="newPoint.date" type="date" placeholder="选择日期" style="width:100%" />
-            </el-form-item>
-            <el-form-item label="测值">
-              <el-input v-model="newPoint.value" type="number" placeholder="如0.21" />
-            </el-form-item>
-          </el-form>
-          <template #footer>
-            <el-button @click="dialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="addPoint">确定</el-button>
-          </template>
-        </el-dialog>
-        <el-card class="panel-card" shadow="hover">
-          <div class="panel-title">数据分析</div>
-          <div style="height:180px;"><LineChart /></div>
-          <div style="height:180px;"><BarChart /></div>
         </el-card>
       </aside>
+
+      <!-- 底部区：状态信息和多图表分析区 -->
+      <section class="screen-bottom-charts-narrow">
+        <el-card class="screen-card" shadow="hover">
+          <div class="screen-card-title">状态信息</div>
+          <div>最新测点：{{ tableData[0]?.name || '-' }}</div>
+          <div>最新测值：{{ tableData[0]?.value || '-' }} mm</div>
+          <div>状态：<span style="color:#00eaff">正常</span></div>
+        </el-card>
+        <el-card class="screen-card" shadow="hover">
+          <div class="screen-card-title">趋势分析</div>
+          <div style="height:120px;"><LineChart /></div>
+        </el-card>
+        <el-card class="screen-card" shadow="hover">
+          <div class="screen-card-title">测值变化</div>
+          <div style="height:120px;"><BarChart /></div>
+        </el-card>
+      </section>
     </div>
 
-    <!-- 底部时间轴和状态栏 -->
-    <footer class="dashboard-footer">
-      <div class="footer-timeline">2024/1/1 ~ 2024/1/29</div>
-      <div class="footer-status">系统状态：正常</div>
+    <div v-else class="tech-body screen-body">
+      <DatabaseView />
+    </div>
+
+    <!-- 底部发光状态栏 -->
+    <footer class="tech-footer screen-footer">
+      <div class="tech-footer-timeline">2024/1/1 ~ 2024/1/29</div>
+      <div class="tech-footer-status">系统状态：正常</div>
     </footer>
   </div>
 </template>
@@ -93,8 +79,10 @@ import { ref, onMounted } from 'vue'
 import CesiumScene from './components/CesiumScene.vue'
 import LineChart from './components/LineChart.vue'
 import BarChart from './components/BarChart.vue'
+import DatabaseView from './components/DatabaseView.vue'
 
 const currentTime = ref('2026/1/11 17:04:37')
+const activeTab = ref('scene')
 const tableData = ref([
   { name: 'EX1', date: '2025-01-15', value: 0.21 },
   { name: 'EX2', date: '2025-01-15', value: 0.18 }
@@ -119,80 +107,256 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.main-dashboard {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #0a2a4a;
+/* 缩窄边栏，Cesium铺满，底部多栏 */
+.screen-menu-narrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 160px;
+  width: 120px;
+  z-index: 2;
+  height: auto;
 }
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 56px;
-  background: linear-gradient(90deg, #0a2a4a 80%, #1e4c7a 100%);
-  color: #fff;
-  padding: 0 32px;
-  font-size: 22px;
+.screen-status-narrow {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 160px;
+  width: 180px;
+  z-index: 2;
+  height: auto;
 }
-.dashboard-title {
-  font-weight: bold;
-  letter-spacing: 2px;
-}
-.dashboard-info {
-  font-size: 16px;
-}
-.dashboard-user {
-  margin-left: 24px;
-  background: #1e4c7a;
+.screen-cesium-full {
+  position: absolute;
+  left: 120px;
+  right: 180px;
+  top: 0;
+  bottom: 160px;
+  z-index: 1;
+  height: auto;
+  background: #000c;
   border-radius: 12px;
-  padding: 4px 12px;
+  box-shadow: 0 2px 16px #1e4c7a44 inset;
+  overflow: hidden;
 }
-.dashboard-body {
+.screen-bottom-charts-narrow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 160px;
   display: flex;
-  flex: 1;
+  gap: 24px;
+  padding: 0 120px 0 180px;
+  z-index: 3;
+}
+/* 监控大屏参考图功能分区布局 */
+.screen-monitor-layout {
+  flex-direction: column;
+  height: calc(100vh - 70px - 40px);
   min-height: 0;
-}
-.dashboard-sidebar {
-  width: 220px;
-  background: #183c5a;
-  color: #fff;
-  padding-top: 12px;
-  box-shadow: 2px 0 8px #0002;
-}
-.dashboard-main {
-  flex: 1;
+  padding: 0;
+  gap: 0;
   position: relative;
-  background: #000;
-  min-width: 0;
 }
-.dashboard-panel {
+.screen-menu {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 160px;
+  width: 220px;
+  z-index: 2;
+  height: auto;
+}
+.screen-menu-list {
+  border-radius: 8px;
+  box-shadow: 0 0 12px #00eaff44;
+  margin-top: 12px;
+}
+.screen-cesium {
+  position: absolute;
+  left: 220px;
+  right: 340px;
+  top: 0;
+  bottom: 160px;
+  z-index: 1;
+  height: auto;
+  background: #000c;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px #1e4c7a44 inset;
+  overflow: hidden;
+}
+.screen-status {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 160px;
   width: 340px;
-  background: #183c5a;
+  z-index: 2;
+  height: auto;
+}
+.screen-bottom-charts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 160px;
+  display: flex;
+  gap: 24px;
+  padding: 0 240px;
+  z-index: 3;
+}
+/* 数字孪生大屏科技感主样式 */
+.screen-bg {
+  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 50%, #0a2a4a 60%, #1e4c7a 100%) fixed;
+  box-shadow: 0 0 80px 10px #1e4c7a88 inset;
+  position: relative;
+}
+.screen-header {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+  background: linear-gradient(90deg, #0a2a4a 80%, #1e4c7a 100%);
+  border-bottom: 2px solid #00eaff;
+  box-shadow: 0 4px 24px #00eaff44, 0 0 32px #1e4c7a88 inset;
+}
+.screen-title {
+  font-size: 32px;
+  font-weight: bold;
   color: #fff;
-  padding: 12px 8px;
-  box-shadow: -2px 0 8px #0002;
+  letter-spacing: 4px;
+  text-shadow: 0 0 16px #00eaff, 0 2px 8px #1e4c7a88;
+}
+.screen-switch {
+  display: flex;
+  gap: 24px;
+}
+.screen-btn {
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 24px;
+  background: linear-gradient(90deg, #00eaff 40%, #1e4c7a 100%);
+  color: #fff;
+  box-shadow: 0 0 12px #00eaff88, 0 2px 8px #1e4c7a88;
+  border: none;
+  padding: 8px 32px;
+}
+.screen-btn:hover {
+  background: linear-gradient(90deg, #1e4c7a 40%, #00eaff 100%);
+  color: #fff;
+}
+.screen-info {
+  font-size: 18px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.screen-user {
+  background: #00eaff44;
+  border-radius: 16px;
+  padding: 4px 16px;
+  box-shadow: 0 0 8px #00eaff88;
+}
+.screen-body {
+  display: flex;
+  flex-direction: row;
+  height: calc(100vh - 70px - 40px);
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 24px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.screen-side {
+  width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
+  background: none;
+  z-index: 2;
 }
-.panel-card {
-  background: #204c7a;
+.screen-card {
+  background: linear-gradient(120deg, #0a2a4a 80%, #00eaff44 100%);
   color: #fff;
-  margin-bottom: 8px;
+  border-radius: 18px;
+  box-shadow: 0 0 24px #00eaff88, 0 2px 12px #1e4c7a88;
+  border: 2px solid #00eaff;
+  padding: 18px 24px;
+  font-size: 18px;
+  position: relative;
 }
-.panel-title {
+.screen-card-title {
+  font-size: 22px;
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  text-shadow: 0 0 8px #00eaff, 0 2px 8px #1e4c7a88;
 }
-.dashboard-footer {
-  height: 32px;
-  background: #0a2a4a;
+.screen-card-content {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+.screen-num {
+  color: #00eaff;
+  font-weight: bold;
+  font-size: 22px;
+  text-shadow: 0 0 8px #00eaff;
+}
+.screen-indicators {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.screen-indicator {
+  background: #1e4c7a88;
+  border-radius: 8px;
+  padding: 8px 0;
+  text-align: center;
+  color: #fff;
+  font-size: 16px;
+  box-shadow: 0 0 8px #00eaff44;
+}
+.screen-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+/* 移除圆形地球背景，直接展示Cesium底图 */
+.screen-model {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+.screen-rank {
+  font-size: 16px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.screen-footer {
+  height: 40px;
+  background: linear-gradient(90deg, #0a2a4a 80%, #00eaff 100%);
   color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  padding: 0 32px;
+  font-size: 16px;
+  padding: 0 48px;
+  border-top: 2px solid #00eaff;
+  box-shadow: 0 -4px 24px #00eaff44, 0 0 32px #1e4c7a88 inset;
 }
 </style>
