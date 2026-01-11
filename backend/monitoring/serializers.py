@@ -3,7 +3,22 @@ from rest_framework import serializers
 from .models import MonitorData
 # 导入已有的测点序列化器，用于嵌套返回测点信息（含Cesium全局坐标）
 from water_structures.serializers import PointSerializer
+from rest_framework import serializers
 
+class RealtimeDataSerializer(serializers.Serializer):
+    """虚拟实时数据序列化器"""
+    point_id = serializers.IntegerField()
+    point_code = serializers.CharField()
+    device_type = serializers.CharField()
+    field_name = serializers.CharField()
+    value = serializers.FloatField()
+    unit = serializers.CharField()
+    timestamp = serializers.DateTimeField()
+    source = serializers.CharField()  # baseline 或 ml
+    confidence = serializers.FloatField()
+    status = serializers.CharField()
+    threshold = serializers.DictField()
+    
 class MonitorDataSerializer(serializers.ModelSerializer):
     # 自定义嵌套字段：返回测点完整信息（含cesium_world_coords全局坐标）
     # 前端无需额外请求测点接口，直接获取关联数据，优化对接体验

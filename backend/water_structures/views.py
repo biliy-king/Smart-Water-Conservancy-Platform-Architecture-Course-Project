@@ -3,6 +3,9 @@ from rest_framework import viewsets
 from .models import Structure, MonitoringDevice, Point
 from .serializers import StructureSerializer, MonitoringDeviceSerializer, PointSerializer
 from .permissions import IsAdminOrReadOnly, IsMonitorOrAdminForWrite
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .serializers import PointSerializer, ThresholdSerializer
 
 # 大坝视图集（加载Cesium大坝模型的核心接口）
 class StructureViewSet(viewsets.ModelViewSet):
@@ -27,3 +30,22 @@ class PointViewSet(viewsets.ModelViewSet):
     # 关联测点序列化器
     serializer_class = PointSerializer
     permission_classes = [IsMonitorOrAdminForWrite]
+    
+    @action(detail=True, methods=['get', 'put'], serializer_class=ThresholdSerializer)
+    def thresholds(self, request, pk=None):
+        """
+        获取或修改单个测点的告警阈值
+        GET /api/water-structures/points/{id}/thresholds/ - 获取阈值
+        PUT /api/water-structures/points/{id}/thresholds/ - 修改阈值
+        """
+        point = self.get_object()
+        
+        if request.method == 'GET':
+            serializer = self.get_serializer(point)
+            return Response(serializer.data)
+        
+        elif request.method == 'PUT':
+            serializer = self.get_serializer(point, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
