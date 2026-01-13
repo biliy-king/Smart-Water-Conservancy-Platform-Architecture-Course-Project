@@ -109,3 +109,16 @@ class ThresholdSerializer(serializers.Serializer):
                 setattr(instance, field, value)
         instance.save()
         return instance
+# 5. 大坝坝段汇总序列化器
+class SegmentSummarySerializer(serializers.Serializer):
+    segment_id = serializers.CharField()
+    segment_name = serializers.CharField()
+    device_count = serializers.IntegerField()
+    point_count = serializers.IntegerField()
+    warning_count = serializers.IntegerField()
+    normal_count = serializers.IntegerField()
+    has_warning = serializers.BooleanField()
+
+class SegmentDetailSerializer(SegmentSummarySerializer):
+    devices = MonitoringDeviceSerializer(many=True)
+    points = PointSerializer(many=True)

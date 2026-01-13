@@ -1,33 +1,96 @@
 <template>
   <div class="view-switch-panel">
-    <el-card shadow="never" class="panel-card">
-      <div class="panel-title">视角切换</div>
-      <el-button-group>
-        <el-button type="primary" size="small">俯视角</el-button>
-        <el-button type="primary" size="small">功能角</el-button>
-        <el-button type="primary" size="small">场景角</el-button>
-      </el-button-group>
-    </el-card>
+    <div class="panel-title">视角切换</div>
+    <div class="view-list">
+      <div 
+        v-for="view in views" 
+        :key="view.id" 
+        class="view-item" 
+        :class="{ active: selectedView === view.id }"
+        @click="selectView(view)"
+      >
+        <div class="view-rectangle"></div>
+        <div class="view-text">{{ view.name }}</div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-// 可根据需要添加视角切换逻辑
+import { ref } from 'vue'
+
+const views = ref([
+  { id: 1, name: '水库视角' },
+  { id: 2, name: '聚焦测点' },
+  { id: 3, name: '大坝视角' },
+  { id: 4, name: '全景视角' },
+  { id: 5, name: '地球视角' }
+])
+
+const selectedView = ref(1)
+
+function selectView(view) {
+  selectedView.value = view.id
+  // 触发视角切换事件
+  console.log('切换视角:', view.name)
+}
 </script>
 
 <style scoped>
 .view-switch-panel {
-  padding: 12px 8px;
-  background: #223044;
+  padding: 20px;
+  background: rgba(255, 249, 189, 0.65);
 }
-.panel-card {
-  background: #223044;
-  color: #fff;
-  border: none;
-}
+
 .panel-title {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 32px;
+  color: #000000;
+  margin-bottom: 20px;
+}
+
+.view-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.view-item {
+  position: relative;
+  width: 240px;
+  height: 57px;
+  margin-bottom: 0;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.view-item:not(:last-child) {
+  border-bottom: 3px solid #9E9D8C;
+}
+
+.view-rectangle {
+  position: absolute;
+  width: 240px;
+  height: 57px;
+  background: #FFFCD5;
+  border: 3px solid #9E9D8C;
+  transition: background 0.3s;
+}
+
+.view-item.active .view-rectangle {
+  background: #D9D9D9;
+}
+
+.view-text {
+  position: absolute;
+  left: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 32px;
+  color: #000000;
+  line-height: 1.21;
 }
 </style>

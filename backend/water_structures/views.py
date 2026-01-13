@@ -6,6 +6,8 @@ from .permissions import IsAdminOrReadOnly, IsMonitorOrAdminForWrite
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import PointSerializer, ThresholdSerializer
+from .segment_manager import get_all_segments, get_segment_summary
+from .serializers import SegmentSummarySerializer, SegmentDetailSerializer
 
 # 大坝视图集（加载Cesium大坝模型的核心接口）
 class StructureViewSet(viewsets.ModelViewSet):
@@ -14,6 +16,19 @@ class StructureViewSet(viewsets.ModelViewSet):
     # 关联大坝序列化器
     serializer_class = StructureSerializer
     permission_classes = [IsAdminOrReadOnly]
+    @action(detail=True, methods=["get"])
+    def segments(self, request, pk=None):
+        summaries = [s for s in get_all_segments() if s]
+        serializer = SegmentSummarySerializer(summaries, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="segments/(?P<segment_id>[^/.]+)")
+    def segment_detail(self, request, pk=None, segment_id=None):
+        summary = get_segment_summary(segment_id)
+        if not summary:
+            return Response({"detail": "segment not found"}, status=404)
+        serializer = SegmentDetailSerializer(summary)
+        return Response(serializer.data)
 
 # 监测设备视图集（完善数据关联，方便前端排查）
 class MonitoringDeviceViewSet(viewsets.ModelViewSet):

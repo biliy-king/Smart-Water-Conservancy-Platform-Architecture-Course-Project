@@ -1,362 +1,419 @@
 <template>
-  <div class="tech-screen-root screen-bg">
-    <!-- 顶部导航栏 -->
-    <header class="tech-header screen-header">
-      <div class="tech-title screen-title">数字孪生可视化系统</div>
-      <div class="tech-switch screen-switch">
-        <el-button :type="activeTab==='scene'?'primary':'default'" class="screen-btn" @click="activeTab='scene'">全球总览</el-button>
-        <el-button :type="activeTab==='database'?'primary':'default'" class="screen-btn" @click="activeTab='database'">城市数据</el-button>
-      </div>
-      <div class="tech-info screen-info">
-        <span>{{ currentTime }}</span>
-        <span class="tech-user screen-user">管理员</span>
-      </div>
-    </header>
-
-    <div v-if="activeTab==='scene'" class="tech-body screen-body screen-monitor-layout">
-      <!-- 左侧菜单区（缩窄，仅一栏） -->
-      <aside class="screen-side screen-side-left screen-menu-narrow">
-        <el-card class="screen-card" shadow="hover">
-          <div class="screen-card-title">三维场景模型</div>
-          <el-menu default-active="1" class="screen-menu-list" background-color="#0a2a4a" text-color="#fff" active-text-color="#00eaff">
-            <el-menu-item index="1">开关状态</el-menu-item>
-            <el-menu-item index="2">开关监测</el-menu-item>
-            <el-menu-item index="3">开关分析</el-menu-item>
-          </el-menu>
-        </el-card>
-      </aside>
-
-      <!-- 中间Cesium三维场景铺满 -->
-      <main class="screen-main screen-cesium-full">
-        <CesiumScene />
-      </main>
-
-      <!-- 右侧测点数据表（缩窄，仅一栏） -->
-      <aside class="screen-side screen-side-right screen-status-narrow">
-        <el-card class="screen-card" shadow="hover">
-          <div class="screen-card-title">测点数据</div>
-          <el-table :data="tableData" style="width:100%" height="320">
-            <el-table-column prop="name" label="测点" width="80" />
-            <el-table-column prop="date" label="日期" width="120" />
-            <el-table-column prop="value" label="测值(mm)" width="80" />
-          </el-table>
-        </el-card>
-      </aside>
-
-      <!-- 底部区：状态信息和多图表分析区 -->
-      <section class="screen-bottom-charts-narrow">
-        <el-card class="screen-card" shadow="hover">
-          <div class="screen-card-title">状态信息</div>
-          <div>最新测点：{{ tableData[0]?.name || '-' }}</div>
-          <div>最新测值：{{ tableData[0]?.value || '-' }} mm</div>
-          <div>状态：<span style="color:#00eaff">正常</span></div>
-        </el-card>
-        <el-card class="screen-card" shadow="hover">
-          <div class="screen-card-title">趋势分析</div>
-          <div style="height:120px;"><LineChart /></div>
-        </el-card>
-        <el-card class="screen-card" shadow="hover">
-          <div class="screen-card-title">测值变化</div>
-          <div style="height:120px;"><BarChart /></div>
-        </el-card>
-      </section>
+  <div class="main-container">
+    <!-- 登录/注册页面 -->
+    <div v-if="showLogin" class="login-container">
+      <LoginPage @close="showLogin = false" @switch-to-register="showRegister = true; showLogin = false" />
     </div>
-
-    <div v-else class="tech-body screen-body">
-      <DatabaseView />
+    <div v-else-if="showRegister" class="login-container">
+      <RegisterPage @close="showRegister = false" @switch-to-login="showLogin = true; showRegister = false" />
     </div>
+    
+    <!-- 主监控大屏 -->
+    <div v-else class="tech-screen-root screen-bg">
+      <!-- 顶部导航栏 -->
+      <header class="tech-header screen-header">
+        <div class="header-left">
+          <div class="tech-title screen-title">数字化大坝监测可视化系统</div>
+        </div>
+        <div class="header-right">
+          <div class="tech-info screen-info">
+            <span class="current-time">{{ currentTime }}</span>
+            <div class="user-avatar">
+              <div class="avatar-circle"></div>
+            </div>
+            <span class="login-register-btn" @click="showLogin = true">登录/注册</span>
+          </div>
+        </div>
+      </header>
 
-    <!-- 底部发光状态栏 -->
-    <footer class="tech-footer screen-footer">
-      <div class="tech-footer-timeline">2024/1/1 ~ 2024/1/29</div>
-      <div class="tech-footer-status">系统状态：正常</div>
-    </footer>
+      <div v-if="activeTab==='scene'" class="tech-body screen-body screen-monitor-layout">
+        <!-- 左侧垂直菜单 -->
+        <aside class="screen-side screen-side-left screen-menu-narrow">
+          <div class="menu-item" :class="{ active: activeTab === 'scene' }" @click="activeTab = 'scene'">
+            <div class="menu-rectangle"></div>
+            <div class="menu-text">数<br/>字<br/>监<br/>控<br/>大<br/>屏</div>
+          </div>
+          <div class="menu-item" :class="{ active: activeTab === 'database' }" @click="activeTab = 'database'">
+            <div class="menu-rectangle"></div>
+            <div class="menu-text">数<br/>据<br/>库<br/>界<br/>面</div>
+          </div>
+        </aside>
+
+        <!-- 中间Cesium三维场景 -->
+        <main class="screen-main screen-cesium-full">
+          <CesiumScene />
+          <!-- 底部控制按钮 -->
+          <div class="bottom-controls">
+            <div class="control-btn" @click="showEffectPanel = !showEffectPanel">
+              <div class="btn-rectangle">效果设置</div>
+            </div>
+            <div class="control-btn" @click="showViewPanel = !showViewPanel">
+              <div class="btn-rectangle">视角切换</div>
+            </div>
+            <div class="control-btn" @click="showSensorPanel = !showSensorPanel">
+              <div class="btn-rectangle">测点切换</div>
+            </div>
+          </div>
+        </main>
+
+        <!-- 右侧控制面板 -->
+        <aside class="screen-side screen-side-right screen-control-panel">
+          <ViewSwitchPanel v-if="showViewPanel" />
+          <EffectPanel v-if="showEffectPanel" />
+          <SensorPanel v-if="showSensorPanel" />
+        </aside>
+
+        <!-- 底部传感器信息卡片 -->
+        <section class="screen-bottom-info">
+          <div class="sensor-info-card">
+            <div class="sensor-title">乌拉呀哈大坝</div>
+            <div class="sensor-overview">概述：</div>
+            <div class="visualization-card">
+              <div class="vis-card-header">可视化</div>
+              <div class="vis-card-image"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div v-else class="tech-body screen-body">
+        <DatabaseView @switch-to-scene="activeTab = 'scene'" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import CesiumScene from './components/CesiumScene.vue'
-import LineChart from './components/LineChart.vue'
-import BarChart from './components/BarChart.vue'
 import DatabaseView from './components/DatabaseView.vue'
+import ViewSwitchPanel from './components/ViewSwitchPanel.vue'
+import EffectPanel from './components/EffectPanel.vue'
+import SensorPanel from './components/SensorPanel.vue'
+import LoginPage from './components/LoginPage.vue'
+import RegisterPage from './components/RegisterPage.vue'
 
-const currentTime = ref('2026/1/11 17:04:37')
+const currentTime = ref('2026/1/15 10:00:00 星期四')
 const activeTab = ref('scene')
-const tableData = ref([
-  { name: 'EX1', date: '2025-01-15', value: 0.21 },
-  { name: 'EX2', date: '2025-01-15', value: 0.18 }
-])
-const dialogVisible = ref(false)
-const newPoint = ref({ name: '', date: '', value: '' })
+const showLogin = ref(false)
+const showRegister = ref(false)
+const showViewPanel = ref(true)
+const showEffectPanel = ref(false)
+const showSensorPanel = ref(false)
 
-function addPoint() {
-  if (!newPoint.value.name || !newPoint.value.date || !newPoint.value.value) return
-  tableData.value.push({
-    name: newPoint.value.name,
-    date: typeof newPoint.value.date === 'string' ? newPoint.value.date : newPoint.value.date.toISOString().slice(0, 10),
-    value: Number(newPoint.value.value)
-  })
-  dialogVisible.value = false
-  newPoint.value = { name: '', date: '', value: '' }
-}
+let timeInterval = null
 
 onMounted(() => {
-  // 可加定时更新时间
+  updateTime()
+  timeInterval = setInterval(updateTime, 1000)
 })
+
+onUnmounted(() => {
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
+})
+
+function updateTime() {
+  const now = new Date()
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  const weekday = weekdays[now.getDay()]
+  currentTime.value = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}${weekday}`
+}
 </script>
 
 <style scoped>
-/* 缩窄边栏，Cesium铺满，底部多栏 */
-.screen-menu-narrow {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 160px;
-  width: 120px;
-  z-index: 2;
-  height: auto;
-}
-.screen-status-narrow {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 160px;
-  width: 180px;
-  z-index: 2;
-  height: auto;
-}
-.screen-cesium-full {
-  position: absolute;
-  left: 120px;
-  right: 180px;
-  top: 0;
-  bottom: 160px;
-  z-index: 1;
-  height: auto;
-  background: #000c;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px #1e4c7a44 inset;
+.main-container {
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
-.screen-bottom-charts-narrow {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 160px;
+
+.login-container {
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  gap: 24px;
-  padding: 0 120px 0 180px;
-  z-index: 3;
+  align-items: center;
+  justify-content: center;
 }
-/* 监控大屏参考图功能分区布局 */
-.screen-monitor-layout {
-  flex-direction: column;
-  height: calc(100vh - 70px - 40px);
-  min-height: 0;
-  padding: 0;
-  gap: 0;
-  position: relative;
-}
-.screen-menu {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 160px;
-  width: 220px;
-  z-index: 2;
-  height: auto;
-}
-.screen-menu-list {
-  border-radius: 8px;
-  box-shadow: 0 0 12px #00eaff44;
-  margin-top: 12px;
-}
-.screen-cesium {
-  position: absolute;
-  left: 220px;
-  right: 340px;
-  top: 0;
-  bottom: 160px;
-  z-index: 1;
-  height: auto;
-  background: #000c;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px #1e4c7a44 inset;
-  overflow: hidden;
-}
-.screen-status {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 160px;
-  width: 340px;
-  z-index: 2;
-  height: auto;
-}
-.screen-bottom-charts {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 160px;
-  display: flex;
-  gap: 24px;
-  padding: 0 240px;
-  z-index: 3;
-}
-/* 数字孪生大屏科技感主样式 */
+
+/* 主监控大屏样式 */
 .screen-bg {
   min-height: 100vh;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 50%, #0a2a4a 60%, #1e4c7a 100%) fixed;
-  box-shadow: 0 0 80px 10px #1e4c7a88 inset;
+  background: #FFFFFF;
   position: relative;
 }
+
+/* 顶部标题栏 */
 .screen-header {
-  height: 70px;
+  height: 200px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 48px;
-  background: linear-gradient(90deg, #0a2a4a 80%, #1e4c7a 100%);
-  border-bottom: 2px solid #00eaff;
-  box-shadow: 0 4px 24px #00eaff44, 0 0 32px #1e4c7a88 inset;
+  padding: 0;
+  background: #FFFAC1;
+  position: relative;
 }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  padding-left: 475px;
+}
+
+.header-logo {
+  width: 181px;
+  height: 188px;
+  margin-right: 20px;
+}
+
 .screen-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 96px;
+  color: #000000;
+  letter-spacing: 0;
+  line-height: 1.21;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  padding-right: 23px;
+}
+
+.current-time {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 36px;
+  color: #000000;
+  margin-right: 20px;
+}
+
+.user-avatar {
+  width: 72px;
+  height: 72px;
+  margin-right: 16px;
+}
+
+.avatar-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIHZpZXdCb3g9IjAgMCA3MiA3MiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzYiIGN5PSIzNiIgcj0iMzYiIGZpbGw9IiNGRkY5QjkiLz4KPC9zdmc+') no-repeat center;
+  background-size: cover;
+}
+
+.login-register-btn {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
   font-size: 32px;
-  font-weight: bold;
-  color: #fff;
-  letter-spacing: 4px;
-  text-shadow: 0 0 16px #00eaff, 0 2px 8px #1e4c7a88;
+  color: rgba(0, 0, 0, 0.64);
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: background 0.3s;
 }
-.screen-switch {
-  display: flex;
-  gap: 24px;
+
+.login-register-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
-.screen-btn {
-  font-size: 18px;
-  font-weight: bold;
-  border-radius: 24px;
-  background: linear-gradient(90deg, #00eaff 40%, #1e4c7a 100%);
-  color: #fff;
-  box-shadow: 0 0 12px #00eaff88, 0 2px 8px #1e4c7a88;
-  border: none;
-  padding: 8px 32px;
-}
-.screen-btn:hover {
-  background: linear-gradient(90deg, #1e4c7a 40%, #00eaff 100%);
-  color: #fff;
-}
-.screen-info {
-  font-size: 18px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-.screen-user {
-  background: #00eaff44;
-  border-radius: 16px;
-  padding: 4px 16px;
-  box-shadow: 0 0 8px #00eaff88;
-}
+
+/* 主体布局 */
 .screen-body {
+  height: calc(100vh - 200px);
+  position: relative;
+  background: #FFFFFF;
+}
+
+.screen-monitor-layout {
+  height: 100%;
+  position: relative;
+}
+
+/* 左侧垂直菜单 */
+.screen-menu-narrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 10;
   display: flex;
-  flex-direction: row;
-  height: calc(100vh - 70px - 40px);
-  min-height: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  padding: 0 24px;
-  box-sizing: border-box;
+  flex-direction: column;
+  gap: 0;
+}
+
+.menu-item {
+  position: relative;
+  width: 48px;
+  height: 271px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.menu-item.active .menu-rectangle {
+  background: #D9D9D9;
+}
+
+.menu-item:not(.active) .menu-rectangle {
+  background: #FFFAB9;
+}
+
+.menu-rectangle {
+  width: 48px;
+  height: 271px;
+  transition: background 0.3s;
+}
+
+.menu-text {
+  position: absolute;
+  left: 8px;
+  top: 27px;
+  width: 32px;
+  height: 234px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 32px;
+  color: #000000;
+  line-height: 1.21;
+  writing-mode: vertical-lr;
+  text-align: center;
+}
+
+/* 中间Cesium场景 */
+.screen-cesium-full {
+  position: absolute;
+  left: 48px;
+  right: 512px;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  background: #000;
   overflow: hidden;
 }
-.screen-side {
-  width: 340px;
+
+.bottom-controls {
+  position: absolute;
+  bottom: 0;
+  left: 504px;
+  height: 57px;
   display: flex;
-  flex-direction: column;
-  gap: 18px;
-  background: none;
-  z-index: 2;
+  gap: 0;
+  z-index: 100;
 }
-.screen-card {
-  background: linear-gradient(120deg, #0a2a4a 80%, #00eaff44 100%);
-  color: #fff;
-  border-radius: 18px;
-  box-shadow: 0 0 24px #00eaff88, 0 2px 12px #1e4c7a88;
-  border: 2px solid #00eaff;
-  padding: 18px 24px;
-  font-size: 18px;
+
+.control-btn {
+  width: 240px;
+  height: 57px;
+  cursor: pointer;
   position: relative;
 }
-.screen-card-title {
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 12px;
-  text-shadow: 0 0 8px #00eaff, 0 2px 8px #1e4c7a88;
-}
-.screen-card-content {
-  margin-bottom: 8px;
-  font-size: 18px;
-}
-.screen-num {
-  color: #00eaff;
-  font-weight: bold;
-  font-size: 22px;
-  text-shadow: 0 0 8px #00eaff;
-}
-.screen-indicators {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.screen-indicator {
-  background: #1e4c7a88;
-  border-radius: 8px;
-  padding: 8px 0;
-  text-align: center;
-  color: #fff;
-  font-size: 16px;
-  box-shadow: 0 0 8px #00eaff44;
-}
-.screen-main {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
+
+.btn-rectangle {
+  width: 240px;
+  height: 57px;
+  background: #FFFAC1;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  z-index: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 32px;
+  color: #000000;
+  border: 1px solid #000000;
+  transition: background 0.3s;
 }
-/* 移除圆形地球背景，直接展示Cesium底图 */
-.screen-model {
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: #fff;
+
+.control-btn:hover .btn-rectangle {
+  background: #D9D9D9;
 }
-.screen-rank {
-  font-size: 16px;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+
+/* 右侧控制面板 */
+.screen-control-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 512px;
+  z-index: 5;
+  background: rgba(255, 249, 189, 0.65);
+  padding: 20px;
+  overflow-y: auto;
 }
-.screen-footer {
-  height: 40px;
-  background: linear-gradient(90deg, #0a2a4a 80%, #00eaff 100%);
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 16px;
-  padding: 0 48px;
-  border-top: 2px solid #00eaff;
-  box-shadow: 0 -4px 24px #00eaff44, 0 0 32px #1e4c7a88 inset;
+
+/* 底部传感器信息 */
+.screen-bottom-info {
+  position: absolute;
+  left: 60px;
+  bottom: 60px;
+  z-index: 6;
+}
+
+.sensor-info-card {
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 300px;
+}
+
+.sensor-title {
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  font-size: 40px;
+  color: #000000;
+  margin-bottom: 10px;
+}
+
+.sensor-overview {
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  font-size: 40px;
+  color: #000000;
+  margin-bottom: 20px;
+}
+
+.visualization-card {
+  width: 162px;
+  height: 215px;
+  background: #FFFAC1;
+  border: 1px solid #626262;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.vis-card-header {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 30px;
+  color: #0F1419;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.vis-card-image {
+  width: 100%;
+  height: 177px;
+  background: #D9D9D9;
+  border-radius: 5px;
+}
+
+/* 响应式调整 */
+@media (max-width: 1920px) {
+  .screen-title {
+    font-size: 64px;
+  }
+  .header-left {
+    padding-left: 200px;
+  }
 }
 </style>

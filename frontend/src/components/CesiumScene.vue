@@ -129,32 +129,13 @@ function addTilesetInteraction() {
 <style scoped>
 #cesiumContainer {
   width: 100%;
-  height: 100vh;
-}
-/* 视角按钮按钮样式 */
-.view-controls {
+  height: 100%;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  gap: 12px;
-  z-index: 1000;
+  top: 0;
+  left: 0;
 }
-
-.view-controls button {
-  padding: 10px 15px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
-}
-
-.view-controls button:hover {
-  background: rgba(0, 0, 0, 0.9);
-  transform: scale(1.05);
+/* 视角按钮按钮样式 - 隐藏，因为现在使用右侧面板 */
+.view-controls {
+  display: none;
 }
 </style>
