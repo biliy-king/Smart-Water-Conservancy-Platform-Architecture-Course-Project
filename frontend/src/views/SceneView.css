@@ -129,6 +129,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 8px;
 }
 
 .text-wrapper_2:hover {
@@ -144,6 +145,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 8px;
 }
 
 .text-wrapper_3:hover {
@@ -299,6 +301,7 @@
   align-items: center;
   justify-content: center;
   transition: background 0.3s;
+  border-radius: 8px;
 }
 
 .text-wrapper_4:hover {
@@ -327,6 +330,7 @@
   align-items: center;
   justify-content: center;
   transition: background 0.3s;
+  border-radius: 8px;
 }
 
 .text-wrapper_5:hover {
@@ -472,6 +476,7 @@
   align-items: center;
   justify-content: center;
   transition: background 0.3s;
+  border-radius: 8px;
 }
 
 .text-wrapper_6:hover {

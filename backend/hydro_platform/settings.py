@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'django_filters',  # Django REST Framework 过滤器支持
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

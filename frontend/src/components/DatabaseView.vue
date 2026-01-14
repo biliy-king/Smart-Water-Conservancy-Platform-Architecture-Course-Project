@@ -67,17 +67,28 @@
           </select>
         </template>
         
-        <div class="group_5 flex-row">
-          <div class="block_1 flex-col" :class="{ active: sortOrder === 'asc' }" @click="sortOrder = 'asc'"></div>
-          <span class="text_2">升序</span>
-          <div class="block_2 flex-col" :class="{ active: sortOrder === 'desc' }" @click="sortOrder = 'desc'"></div>
-          <span class="text_3">降序</span>
-        </div>
+        <!-- 排序控制（仅监测数据需要） -->
+        <template v-if="currentDataType === 'monitor'">
+          <select v-model="sortField" class="group_3 flex-col modern-select" style="width: 150px;">
+            <option value="monitor_time">监测时间</option>
+            <option value="monitor_value">监测指标</option>
+            <option value="status">状态</option>
+          </select>
+          <div class="group_5 flex-row">
+            <div class="block_1 flex-col" :class="{ active: sortOrder === 'asc' }" @click="changeSortOrder('asc')"></div>
+            <span class="text_2">升序</span>
+            <div class="block_2 flex-col" :class="{ active: sortOrder === 'desc' }" @click="changeSortOrder('desc')"></div>
+            <span class="text_3">降序</span>
+          </div>
+        </template>
         <div class="text-wrapper_1 flex-col" @click="applyFilters">
           <span class="text_4">确定</span>
         </div>
-        <div class="text-wrapper_1 flex-col" @click="addData">
+        <div v-if="canEditData" class="text-wrapper_1 flex-col" @click="addData">
           <span class="text_4">+增加数据</span>
+        </div>
+        <div v-if="isAdmin" class="text-wrapper_1 flex-col" @click="openThresholdAndStatusDialog">
+          <span class="text_4">设定阈值与状态</span>
         </div>
       </div>
       
@@ -114,18 +125,18 @@
                   <th>下游水位</th>
                   <th>状态</th>
                   <th>监测人</th>
-                  <th>操作</th>
+                  <th v-if="canEditData">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="12" style="text-align: center; padding: 20px;">加载中...</td>
+                  <td :colspan="canEditData ? 12 : 11" style="text-align: center; padding: 20px;">加载中...</td>
                 </tr>
                 <tr v-else-if="errorMessage">
-                  <td colspan="12" style="text-align: center; padding: 20px; color: #f56c6c;">{{ errorMessage }}</td>
+                  <td :colspan="canEditData ? 12 : 11" style="text-align: center; padding: 20px; color: #f56c6c;">{{ errorMessage }}</td>
                 </tr>
                 <tr v-else-if="paginatedData.length === 0">
-                  <td colspan="12" style="text-align: center; padding: 20px;">暂无数据</td>
+                  <td :colspan="canEditData ? 12 : 11" style="text-align: center; padding: 20px;">暂无数据</td>
                 </tr>
                 <tr v-else v-for="item in paginatedData" :key="item.id" :class="{ selected: selectedIds.includes(item.id) }">
                   <td>
@@ -143,7 +154,7 @@
                     <span :class="['status-badge', getStatusClass(item.status)]">{{ getStatusText(item.status) }}</span>
                   </td>
                   <td>{{ item.monitor_person || '-' }}</td>
-                  <td>
+                  <td v-if="canEditData">
                     <button class="action-btn" @click="viewDetail(item)">详情</button>
                     <button class="action-btn" @click="editItem(item)">编辑</button>
                     <button class="action-btn delete" @click="deleteItem(item)">删除</button>
@@ -164,18 +175,18 @@
                   <th>电话</th>
                   <th>部门</th>
                   <th>创建时间</th>
-                  <th>操作</th>
+                  <th v-if="canManageUsers">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="7" style="text-align: center; padding: 20px;">加载中...</td>
+                  <td :colspan="canManageUsers ? 7 : 6" style="text-align: center; padding: 20px;">加载中...</td>
                 </tr>
                 <tr v-else-if="errorMessage">
-                  <td colspan="7" style="text-align: center; padding: 20px; color: #f56c6c;">{{ errorMessage }}</td>
+                  <td :colspan="canManageUsers ? 7 : 6" style="text-align: center; padding: 20px; color: #f56c6c;">{{ errorMessage }}</td>
                 </tr>
                 <tr v-else-if="paginatedData.length === 0">
-                  <td colspan="7" style="text-align: center; padding: 20px;">暂无数据</td>
+                  <td :colspan="canManageUsers ? 7 : 6" style="text-align: center; padding: 20px;">暂无数据</td>
                 </tr>
                 <tr v-else v-for="item in paginatedData" :key="item.id" :class="{ selected: selectedIds.includes(item.id) }">
                   <td>
@@ -186,7 +197,7 @@
                   <td>{{ item.phone || '-' }}</td>
                   <td>{{ item.department || '-' }}</td>
                   <td>{{ formatDateTime(item.create_time) }}</td>
-                  <td>
+                  <td v-if="canManageUsers">
                     <button class="action-btn" @click="viewDetail(item)">详情</button>
                     <button class="action-btn" @click="editItem(item)">编辑</button>
                     <button class="action-btn delete" @click="deleteItem(item)">删除</button>
@@ -438,6 +449,95 @@
         <el-button type="primary" @click="saveEdit">保存</el-button>
       </template>
     </el-dialog>
+    
+    <!-- 设定阈值与状态对话框 -->
+    <el-dialog
+      v-model="thresholdAndStatusDialogVisible"
+      title="设定阈值与状态"
+      width="800px"
+      :close-on-click-modal="false"
+    >
+      <el-tabs v-model="thresholdAndStatusActiveTab" type="border-card">
+        <!-- 修改阈值标签页 -->
+        <el-tab-pane label="修改阈值" name="threshold">
+          <el-form :model="thresholdForm" label-width="150px" style="margin-top: 20px;">
+            <el-form-item label="选择仪器">
+              <el-select 
+                v-model="thresholdForm.pointId" 
+                placeholder="请选择仪器" 
+                style="width: 100%;"
+                @change="onThresholdPointChange"
+              >
+                <el-option
+                  v-for="point in allPointsForThreshold"
+                  :key="point.id"
+                  :label="`${point.device_info?.device_name || point.point_code}（${getDeviceTypeDisplay(point.device_info?.device_type)}）`"
+                  :value="point.id"
+                />
+              </el-select>
+            </el-form-item>
+            
+            <template v-if="thresholdForm.pointId && currentThresholdPoint">
+              <el-form-item label="设备名称">
+                <el-input v-model="thresholdForm.deviceName" disabled />
+              </el-form-item>
+              <el-form-item label="设备类型">
+                <el-input v-model="thresholdForm.deviceType" disabled />
+              </el-form-item>
+              
+              <template v-if="isDisplacementDeviceForThreshold">
+                <el-form-item label="位移上限(mm)">
+                  <el-input-number v-model="thresholdForm.displacement_upper" :precision="2" style="width: 100%;" />
+                </el-form-item>
+                <el-form-item label="位移下限(mm)">
+                  <el-input-number v-model="thresholdForm.displacement_lower" :precision="2" style="width: 100%;" />
+                </el-form-item>
+              </template>
+              
+              <template v-if="isSettlementDeviceForThreshold">
+                <el-form-item label="沉降上限(mm)">
+                  <el-input-number v-model="thresholdForm.settlement_upper" :precision="2" style="width: 100%;" />
+                </el-form-item>
+                <el-form-item label="沉降下限(mm)">
+                  <el-input-number v-model="thresholdForm.settlement_lower" :precision="2" style="width: 100%;" />
+                </el-form-item>
+              </template>
+              
+              <template v-if="isWaterLevelDeviceForThreshold">
+                <el-form-item label="水位上限(m)">
+                  <el-input-number v-model="thresholdForm.water_level_upper" :precision="2" style="width: 100%;" />
+                </el-form-item>
+                <el-form-item label="水位下限(m)">
+                  <el-input-number v-model="thresholdForm.water_level_lower" :precision="2" style="width: 100%;" />
+                </el-form-item>
+              </template>
+            </template>
+          </el-form>
+        </el-tab-pane>
+        
+        <!-- 修改仪器状态标签页 -->
+        <el-tab-pane label="修改仪器状态" name="status">
+          <el-form :model="statusForm" label-width="150px" style="margin-top: 20px;">
+            <el-form-item
+              v-for="(device, index) in exDevicesForStatus"
+              :key="device.id"
+              :label="device.name"
+            >
+              <el-select v-model="deviceStatusMap[device.id]" style="width: 200px;">
+                <el-option label="正常运行" value="running" />
+                <el-option label="停用" value="stopped" />
+                <el-option label="设备故障" value="faulty" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
+      
+      <template #footer>
+        <el-button @click="thresholdAndStatusDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveThresholdAndStatus">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -460,18 +560,39 @@ import {
 import { register } from '@/api/auth'
 import { 
   getPoints,
-  getPointsWithData
+  getPointsWithData,
+  getDevices,
+  updateDevice,
+  getPointThresholds,
+  updatePointThresholds
 } from '@/api/waterStructures'
 import { isAuthenticated, getCurrentUser } from '@/utils/auth'
 
 const emit = defineEmits(['switch-to-scene'])
 
-// 数据类型
-const dataTypes = [
+// 当前用户信息
+const currentUser = ref(getCurrentUser())
+
+// 数据类型（根据角色过滤）
+const allDataTypes = [
   { label: '监测数据', value: 'monitor' },
   { label: '用户信息', value: 'user' }
 ]
+const dataTypes = computed(() => {
+  // 只有admin能看到用户信息
+  if (currentUser.value?.role === 'admin') {
+    return allDataTypes
+  }
+  return allDataTypes.filter(t => t.value === 'monitor')
+})
 const currentDataType = ref('monitor')
+
+// 角色权限计算属性
+const isViewer = computed(() => currentUser.value?.role === 'viewer')
+const isMonitor = computed(() => currentUser.value?.role === 'monitor')
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const canEditData = computed(() => isMonitor.value || isAdmin.value) // monitor和admin可以编辑数据
+const canManageUsers = computed(() => isAdmin.value) // 只有admin可以管理用户
 
 // 数据
 const tableData = ref([])
@@ -493,7 +614,8 @@ const filters = ref({
   username: '',
   role: ''
 })
-const sortOrder = ref('desc')
+const sortField = ref('monitor_time')  // 排序字段：monitor_time, create_time, status
+const sortOrder = ref('desc')  // 排序方向：asc, desc
 const collectionMethod = ref('auto')
 
 // 选择
@@ -509,6 +631,25 @@ const editDialogTitle = ref('新增')
 const isEditMode = ref(false)
 const editForm = ref({})
 const editFormRef = ref(null)
+
+// 设定阈值与状态对话框
+const thresholdAndStatusDialogVisible = ref(false)
+const thresholdAndStatusActiveTab = ref('threshold')
+const allPointsForThreshold = ref([])
+const thresholdForm = ref({
+  pointId: null,
+  deviceName: '',
+  deviceType: '',
+  displacement_upper: null,
+  displacement_lower: null,
+  settlement_upper: null,
+  settlement_lower: null,
+  water_level_upper: null,
+  water_level_lower: null
+})
+const currentThresholdPoint = ref(null)
+const exDevicesForStatus = ref([])
+const deviceStatusMap = ref({})
 
 // 图表相关
 const chartRef = ref(null)
@@ -566,6 +707,26 @@ const currentPointDeviceType = computed(() => {
   return point?.device_info?.device_type || null
 })
 
+// 阈值设定相关计算属性
+const isDisplacementDeviceForThreshold = computed(() => {
+  if (!currentThresholdPoint.value) return false
+  const deviceType = currentThresholdPoint.value.device_info?.device_type
+  return deviceType === 'inverted_plumb_up_down' || 
+         deviceType === 'inverted_plumb_left_right' || 
+         deviceType === 'tension_wire_up_down'
+})
+
+const isSettlementDeviceForThreshold = computed(() => {
+  if (!currentThresholdPoint.value) return false
+  return currentThresholdPoint.value.device_info?.device_type === 'hydrostatic_leveling'
+})
+
+const isWaterLevelDeviceForThreshold = computed(() => {
+  if (!currentThresholdPoint.value) return false
+  const deviceType = currentThresholdPoint.value.device_info?.device_type
+  return deviceType === 'water_level_upstream' || deviceType === 'water_level_downstream'
+})
+
 // 判断是否应该显示某个字段
 function shouldShowField(fieldName) {
   if (!currentPointDeviceType.value) {
@@ -619,6 +780,10 @@ function onPointChange(pointId) {
 
 // 切换数据类型
 function switchDataType(type) {
+  // 权限检查：只有admin可以切换到用户信息
+  if (type === 'user' && !isAdmin.value) {
+    return
+  }
   currentDataType.value = type
   currentPage.value = 1
   selectedIds.value = []
@@ -641,7 +806,6 @@ async function loadPointList() {
     // 只获取有监测数据的测点
     const response = await getPointsWithData()
     pointList.value = response.data.results || response.data || []
-    console.log(`加载了 ${pointList.value.length} 个有数据的测点`)
   } catch (error) {
     console.error('加载监测点列表失败:', error)
     // 如果新接口失败，回退到获取所有测点
@@ -724,9 +888,7 @@ async function loadData() {
           const mappedId = findPointIdByEXName(pointId)
           if (mappedId) {
             pointId = mappedId
-            console.log(`映射 ${filters.value.pointId} → point_code ${mapEXPointToPointCode(filters.value.pointId)} (ID: ${mappedId})`)
           } else {
-            console.warn(`未找到 ${filters.value.pointId} 对应的测点: point_code ${mapEXPointToPointCode(filters.value.pointId)}`)
             // 如果找不到映射，不传递point参数
             pointId = null
           }
@@ -740,13 +902,16 @@ async function loadData() {
         params.status = filters.value.status
       }
       
-      console.log('筛选参数:', params)
+      // 添加排序参数
+      // 后端使用 ordering 参数，格式：ordering=monitor_time 或 ordering=-monitor_time
+      // - 表示降序，没有 - 表示升序
+      const orderingField = sortField.value || 'monitor_time'
+      const orderingDirection = sortOrder.value === 'asc' ? '' : '-'  // 升序不加-，降序加-
+      params.ordering = orderingDirection + orderingField
       
       response = await getMonitorDataList(params)
-      console.log('API响应:', response.data)
       
       const results = response.data.results || response.data || []
-      console.log(`获取到 ${results.length} 条数据`)
       
       tableData.value = results.map(item => ({
         ...item,
@@ -754,8 +919,6 @@ async function loadData() {
         pointName: item.point_info?.device_info?.device_name || item.point_info?.point_code || `监测点${item.point}`
       }))
       totalItems.value = response.data.count || results.length
-      
-      console.log('筛选后的数据:', tableData.value.length, '条')
     } else if (currentDataType.value === 'user') {
       // 用户信息
       if (filters.value.username) {
@@ -765,16 +928,17 @@ async function loadData() {
         params.role = filters.value.role
       }
       
+      // 用户管理界面不需要排序功能，使用后端默认排序（按创建时间降序）
+      
       response = await getUserProfileList(params)
+      
       const results = response.data.results || response.data || []
       tableData.value = results.map(item => ({
         ...item,
-        username: item.user?.username || item.username || '-'
+        username: item.user_basic_info?.username || item.user?.username || item.username || '-'
       }))
       totalItems.value = response.data.count || results.length
     }
-    
-    console.log('加载数据成功，共', totalItems.value, '条')
   } catch (error) {
     console.error('加载数据失败:', error)
     errorMessage.value = error.response?.data?.detail || '加载数据失败，请稍后重试'
@@ -812,6 +976,18 @@ function getRoleText(role) {
   return map[role] || role
 }
 
+function getDeviceTypeDisplay(deviceType) {
+  const map = {
+    'inverted_plumb_up_down': '倒垂线-上下游位移监测',
+    'inverted_plumb_left_right': '倒垂线-左右岸位移监测',
+    'tension_wire_up_down': '引张线-上下游位移监测',
+    'hydrostatic_leveling': '静力水准-沉降监测',
+    'water_level_upstream': '水位传感器-上游水位监测',
+    'water_level_downstream': '水位传感器-下游水位监测'
+  }
+  return map[deviceType] || deviceType || ''
+}
+
 function formatDateTime(dateStr) {
   if (!dateStr) return '-'
   return dateStr.replace('T', ' ').substring(0, 19)
@@ -832,14 +1008,38 @@ function applyFilters() {
   loadData()
 }
 
+// 切换排序方式
+function changeSortOrder(order) {
+  if (sortOrder.value !== order) {
+    sortOrder.value = order
+    currentPage.value = 1
+    loadData()
+  }
+}
+
+// 监听排序字段变化，自动重新加载数据
+watch(sortField, () => {
+  if (currentDataType.value === 'monitor') {
+    currentPage.value = 1
+    loadData()
+  }
+})
+
+// 切换排序字段（同时重新加载数据）
+watch(sortField, () => {
+  if (currentDataType.value === 'monitor') {
+    currentPage.value = 1
+    loadData()
+  }
+})
+
 function applyCollectionMethod() {
-  console.log('应用采集方式:', collectionMethod.value)
   ElMessage.info('采集方式功能待实现')
 }
 
 function addData() {
   isEditMode.value = false
-  editDialogTitle.value = '新增' + dataTypes.find(t => t.value === currentDataType.value)?.label
+  editDialogTitle.value = '新增' + dataTypes.value.find(t => t.value === currentDataType.value)?.label
   editForm.value = {}
   
   // 根据数据类型初始化表单
@@ -872,7 +1072,7 @@ function addData() {
 
 function editItem(item) {
   isEditMode.value = true
-  editDialogTitle.value = '编辑' + dataTypes.find(t => t.value === currentDataType.value)?.label
+  editDialogTitle.value = '编辑' + dataTypes.value.find(t => t.value === currentDataType.value)?.label
   
   // 深拷贝数据
   editForm.value = JSON.parse(JSON.stringify(item))
@@ -908,7 +1108,7 @@ function editItem(item) {
   
   // 用户信息需要特殊处理
   if (currentDataType.value === 'user') {
-    editForm.value.username = item.username || item.user?.username
+    editForm.value.username = item.username || item.user_basic_info?.username || item.user?.username
   }
   
   editDialogVisible.value = true
@@ -1013,7 +1213,7 @@ async function saveEdit() {
 
 function viewDetail(item) {
   currentDetailItem.value = item
-  detailDialogTitle.value = dataTypes.find(t => t.value === currentDataType.value)?.label + '详情'
+  detailDialogTitle.value = dataTypes.value.find(t => t.value === currentDataType.value)?.label + '详情'
   detailDialogVisible.value = true
 }
 
@@ -1088,6 +1288,161 @@ async function deleteData() {
   }
 }
 
+// 打开设定阈值与状态对话框
+async function openThresholdAndStatusDialog() {
+  thresholdAndStatusDialogVisible.value = true
+  thresholdAndStatusActiveTab.value = 'threshold'
+  
+  try {
+    // 加载所有测点
+    const pointsResponse = await getPoints({ page_size: 1000 })
+    const allPoints = pointsResponse.data?.results || pointsResponse.data || []
+    
+    // EX1-EX10对应的测点point_code
+    const exPointCodes = []
+    for (let i = 1; i <= 10; i++) {
+      exPointCodes.push(`EX1-${i + 1}-位移mm`)
+    }
+    
+    // 只加载EX1-EX10对应的测点（用于阈值设定和状态设定）
+    const exPoints = allPoints.filter(p => exPointCodes.includes(p.point_code))
+    allPointsForThreshold.value = exPoints.sort((a, b) => {
+      const aMatch = a.point_code.match(/^EX1-(\d+)-位移mm$/)
+      const bMatch = b.point_code.match(/^EX1-(\d+)-位移mm$/)
+      if (aMatch && bMatch) {
+        return parseInt(aMatch[1]) - parseInt(bMatch[1])
+      }
+      return 0
+    })
+    
+    // 找到EX1-EX10对应的设备（用于状态设定）
+    exDevicesForStatus.value = []
+    for (const point of exPoints) {
+      if (point.device_info) {
+        const match = point.point_code.match(/^EX1-(\d+)-位移mm$/)
+        if (match) {
+          const deviceNum = parseInt(match[1])
+          const exName = `EX${deviceNum - 1}`
+          exDevicesForStatus.value.push({
+            id: point.device_info.id,
+            name: exName,
+            device: point.device_info
+          })
+          deviceStatusMap.value[point.device_info.id] = point.device_info.device_status || 'running'
+        }
+      }
+    }
+    
+    // 按EX名称排序
+    exDevicesForStatus.value.sort((a, b) => {
+      const aNum = parseInt(a.name.match(/\d+/)[0])
+      const bNum = parseInt(b.name.match(/\d+/)[0])
+      return aNum - bNum
+    })
+  } catch (error) {
+    console.error('加载数据失败:', error)
+    ElMessage.error('加载数据失败')
+  }
+}
+
+// 阈值仪器选择变化时的处理
+async function onThresholdPointChange(pointId) {
+  if (!pointId) {
+    currentThresholdPoint.value = null
+    thresholdForm.value = {
+      pointId: null,
+      deviceName: '',
+      deviceType: '',
+      displacement_upper: null,
+      displacement_lower: null,
+      settlement_upper: null,
+      settlement_lower: null,
+      water_level_upper: null,
+      water_level_lower: null
+    }
+    return
+  }
+  
+  try {
+    const point = allPointsForThreshold.value.find(p => p.id === pointId)
+    if (!point) return
+    
+    currentThresholdPoint.value = point
+    
+    // 获取阈值
+    const thresholdsResponse = await getPointThresholds(pointId)
+    const thresholds = thresholdsResponse.data
+    
+    // 填充表单
+    thresholdForm.value = {
+      pointId: pointId,
+      deviceName: point.device_info?.device_name || point.point_code,
+      deviceType: getDeviceTypeDisplay(point.device_info?.device_type),
+      displacement_upper: thresholds.displacement_upper || null,
+      displacement_lower: thresholds.displacement_lower || null,
+      settlement_upper: thresholds.settlement_upper || null,
+      settlement_lower: thresholds.settlement_lower || null,
+      water_level_upper: thresholds.water_level_upper || null,
+      water_level_lower: thresholds.water_level_lower || null
+    }
+  } catch (error) {
+    console.error('加载阈值失败:', error)
+    ElMessage.error('加载阈值失败')
+  }
+}
+
+// 保存阈值和状态
+async function saveThresholdAndStatus() {
+  try {
+    if (thresholdAndStatusActiveTab.value === 'threshold') {
+      // 保存阈值
+      if (!thresholdForm.value.pointId) {
+        ElMessage.warning('请选择仪器')
+        return
+      }
+      
+      const thresholds = {}
+      if (isDisplacementDeviceForThreshold.value) {
+        thresholds.displacement_upper = thresholdForm.value.displacement_upper
+        thresholds.displacement_lower = thresholdForm.value.displacement_lower
+      }
+      if (isSettlementDeviceForThreshold.value) {
+        thresholds.settlement_upper = thresholdForm.value.settlement_upper
+        thresholds.settlement_lower = thresholdForm.value.settlement_lower
+      }
+      if (isWaterLevelDeviceForThreshold.value) {
+        thresholds.water_level_upper = thresholdForm.value.water_level_upper
+        thresholds.water_level_lower = thresholdForm.value.water_level_lower
+      }
+      
+      await updatePointThresholds(thresholdForm.value.pointId, thresholds)
+      ElMessage.success('阈值保存成功')
+    } else if (thresholdAndStatusActiveTab.value === 'status') {
+      // 保存设备状态
+      const updates = []
+      for (const device of exDevicesForStatus.value) {
+        const newStatus = deviceStatusMap.value[device.id]
+        if (newStatus && newStatus !== device.device.device_status) {
+          updates.push(updateDevice(device.id, { device_status: newStatus }))
+        }
+      }
+      
+      if (updates.length === 0) {
+        ElMessage.warning('没有需要更新的状态')
+        return
+      }
+      
+      await Promise.all(updates)
+      ElMessage.success('设备状态保存成功')
+    }
+    
+    thresholdAndStatusDialogVisible.value = false
+  } catch (error) {
+    console.error('保存失败:', error)
+    ElMessage.error('保存失败：' + (error.response?.data?.detail || '未知错误'))
+  }
+}
+
 function exportData() {
   // 导出数据为CSV
   const headers = []
@@ -1134,7 +1489,7 @@ function exportData() {
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   link.setAttribute('href', url)
-  link.setAttribute('download', `${dataTypes.find(t => t.value === currentDataType.value)?.label}_${new Date().getTime()}.csv`)
+  link.setAttribute('download', `${dataTypes.value.find(t => t.value === currentDataType.value)?.label}_${new Date().getTime()}.csv`)
   link.style.visibility = 'hidden'
   document.body.appendChild(link)
   link.click()
@@ -1389,10 +1744,17 @@ watch([paginatedData, currentDataType], () => {
   })
 })
 
+// 监听用户角色变化，如果用户不是admin且当前在用户信息页面，则切换回监测数据
+watch(isAdmin, (newVal) => {
+  if (!newVal && currentDataType.value === 'user') {
+    currentDataType.value = 'monitor'
+    loadData()
+  }
+}, { immediate: true })
+
 // 组件挂载时检查登录状态并加载数据
 onMounted(() => {
   if (!isAuthenticated()) {
-    console.warn('未登录，无法访问数据库界面')
     emit('switch-to-scene')
     return
   }

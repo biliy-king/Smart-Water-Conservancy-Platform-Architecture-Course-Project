@@ -23,6 +23,9 @@ class MonitorDataSerializer(serializers.ModelSerializer):
     # 自定义嵌套字段：返回测点完整信息（含cesium_world_coords全局坐标）
     # 前端无需额外请求测点接口，直接获取关联数据，优化对接体验
     point_info = PointSerializer(source="point", read_only=True)
+    
+    # 统一指标值字段：根据设备类型返回对应的监测值，用于排序和显示
+    monitor_value = serializers.SerializerMethodField()
 
     class Meta:
         model = MonitorData
@@ -30,7 +33,26 @@ class MonitorDataSerializer(serializers.ModelSerializer):
         fields = "__all__"
         # 关键：标记自动生成/自动计算的字段为只读，禁止前端修改
         # status：由save方法自动判断；create_time：自动生成，均无需手动干预
-        read_only_fields = ("status", "create_time")
+        read_only_fields = ("status", "create_time", "monitor_value")
+    
+    def get_monitor_value(self, obj):
+        """根据设备类型返回对应的监测值"""
+        device_type = obj.point.device.device_type if obj.point and obj.point.device else None
+        
+        if device_type == "inverted_plumb_up_down":
+            return obj.inverted_plumb_up_down
+        elif device_type == "inverted_plumb_left_right":
+            return obj.inverted_plumb_left_right
+        elif device_type == "tension_wire_up_down":
+            return obj.tension_wire_up_down
+        elif device_type == "hydrostatic_leveling":
+            return obj.hydrostatic_leveling_settlement
+        elif device_type == "water_level_upstream":
+            return obj.water_level_upstream
+        elif device_type == "water_level_downstream":
+            return obj.water_level_downstream
+        
+        return None
 
     #增加数据校验逻辑
     def validate_monitor_time(self, value):

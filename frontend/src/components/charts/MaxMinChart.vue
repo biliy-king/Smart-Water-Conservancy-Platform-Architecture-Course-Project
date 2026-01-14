@@ -45,10 +45,7 @@ const maxMinData = ref([])
 
 // 加载监测数据
 async function loadMaxMinData() {
-  console.log('开始加载最大最小值数据, fieldName:', props.fieldName)
-
   if (!props.fieldName) {
-    console.warn('未指定监测字段')
     error.value = '未指定监测字段'
     loading.value = false
     return
@@ -68,21 +65,17 @@ async function loadMaxMinData() {
       const day = String(date.getDate()).padStart(2, '0')
       dates.push(`${month}-${day}`)
     }
-    console.log('生成的日期:', dates)
 
     // 尝试获取虚拟实时数据作为基准值
     let baseValue = 0
     if (props.pointId) {
       try {
         const latestResponse = await getLatestDataByPoint(props.pointId)
-        console.log('虚拟实时数据响应:', latestResponse)
 
         if (latestResponse.data && latestResponse.data[props.fieldName] !== undefined) {
           baseValue = latestResponse.data[props.fieldName]
-          console.log('基准值:', baseValue)
         }
       } catch (err) {
-        console.warn('获取虚拟实时数据失败，使用默认基准值:', err)
         baseValue = 10 // 默认基准值
       }
     } else {
@@ -121,7 +114,6 @@ async function loadMaxMinData() {
       }
     })
 
-    console.log('生成的模拟数据:', maxMinData.value)
     updateChart()
   } catch (err) {
     console.error('加载最大最小值数据失败:', err)
@@ -133,21 +125,13 @@ async function loadMaxMinData() {
 }
 
 function updateChart() {
-  console.log('updateChart 被调用, chartInstance:', chartInstance)
-  console.log('maxMinData.value:', maxMinData.value)
-
   if (!chartInstance) {
-    console.error('chartInstance 为空，无法更新图表')
     return
   }
 
   const dates = maxMinData.value.map(item => item.date)
   const maxValues = maxMinData.value.map(item => item.max)
   const minValues = maxMinData.value.map(item => item.min)
-
-  console.log('图表数据 - dates:', dates)
-  console.log('图表数据 - maxValues:', maxValues)
-  console.log('图表数据 - minValues:', minValues)
 
   const option = {
     animation: true,
@@ -276,14 +260,11 @@ function updateChart() {
     ]
   }
 
-  console.log('准备设置图表选项...')
   chartInstance.setOption(option, true)
-  console.log('图表选项设置完成')
 
   setTimeout(() => {
     if (chartInstance) {
       chartInstance.resize()
-      console.log('图表resize完成')
     }
   }, 100)
 }

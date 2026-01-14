@@ -62,7 +62,6 @@ function switchView(view) {
   if (view === 'scene' || view === 'database') {
     updateAuthStatus()
     if (!isLoggedIn.value) {
-      console.warn('未登录，无法访问受保护页面')
       currentView.value = 'login'
       return
     }
@@ -86,7 +85,6 @@ watch(currentView, (newVal) => {
   if (newVal === 'scene' || newVal === 'database') {
     updateAuthStatus()
     if (!isLoggedIn.value) {
-      console.warn('未登录，重定向到登录页')
       currentView.value = 'login'
     }
   }

@@ -1,7 +1,7 @@
 # monitoring/views.py
 from datetime import timedelta
 
-from django.db.models import OuterRef, Subquery, Count
+from django.db.models import OuterRef, Subquery, Count, Case, When, FloatField, Q
 from django.core.paginator import Paginator
 from django.utils import timezone
 
@@ -9,6 +9,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.filters import OrderingFilter
 
 from .models import MonitorData
 from .serializers import MonitorDataSerializer
@@ -22,9 +23,14 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
     queryset = MonitorData.objects.all().order_by("-monitor_time")
     serializer_class = MonitorDataSerializer
     permission_classes = [IsMonitorOrAdminForWrite]
+    
+    # 配置排序
+    filter_backends = [OrderingFilter]
+    ordering_fields = ['monitor_time', 'create_time', 'status', 'monitor_value']  # 支持的排序字段
+    ordering = ['-monitor_time']  # 默认排序（按监测时间降序）
 
     def get_queryset(self):
-        """重写查询集，支持筛选"""
+        """重写查询集，支持筛选和混合设备类型的排序"""
         queryset = MonitorData.objects.all().select_related('point', 'point__device', 'point__device__structure')
         
         # 获取查询参数
@@ -32,6 +38,7 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
         status = self.request.query_params.get('status')
         start_time = self.request.query_params.get('start_time')
         end_time = self.request.query_params.get('end_time')
+        ordering_param = self.request.query_params.get('ordering')
         
         # 按测点筛选
         if point_id:
@@ -51,8 +58,32 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
         if end_time:
             queryset = queryset.filter(monitor_time__lte=end_time)
         
-        # 按时间倒序排列
-        queryset = queryset.order_by("-monitor_time")
+        # 如果是按 monitor_value 排序，需要创建一个统一的排序字段
+        if ordering_param and ('monitor_value' in ordering_param or '-monitor_value' in ordering_param):
+            # 使用 Case/When 创建一个统一的指标值字段
+            # COALESCE 用于合并所有可能的指标字段，返回第一个非空值
+            from django.db.models import F
+            queryset = queryset.annotate(
+                monitor_value=Case(
+                    When(point__device__device_type='inverted_plumb_up_down', then=F('inverted_plumb_up_down')),
+                    When(point__device__device_type='inverted_plumb_left_right', then=F('inverted_plumb_left_right')),
+                    When(point__device__device_type='tension_wire_up_down', then=F('tension_wire_up_down')),
+                    When(point__device__device_type='hydrostatic_leveling', then=F('hydrostatic_leveling_settlement')),
+                    When(point__device__device_type='water_level_upstream', then=F('water_level_upstream')),
+                    When(point__device__device_type='water_level_downstream', then=F('water_level_downstream')),
+                    default=None,
+                    output_field=FloatField()
+                )
+            )
+            
+            # 处理排序方向
+            if ordering_param.startswith('-'):
+                queryset = queryset.order_by('-monitor_value', '-monitor_time')
+            else:
+                queryset = queryset.order_by('monitor_value', '-monitor_time')
+        else:
+            # 其他排序由 OrderingFilter 处理
+            pass
         
         return queryset
 

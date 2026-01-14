@@ -96,7 +96,6 @@ async function handleLogin() {
       // 更新认证状态
       setLoggedIn()
       
-      console.log('登录成功:', response.data.user)
       
       // 关闭登录页面
       emit('close')
@@ -313,15 +312,14 @@ async function handleLogin() {
 
 .text_4 {
   width: 89px;
-  height: 65px;
   overflow-wrap: break-word;
   color: rgba(15, 20, 25, 1);
   font-size: 40px;
   font-family: 'Baloo Bhai 2', sans-serif;
   font-weight: 400;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
-  line-height: 40px;
+  line-height: 1;
 }
 
 /* 注册链接 */

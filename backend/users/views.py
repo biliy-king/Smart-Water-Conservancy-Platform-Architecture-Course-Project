@@ -3,11 +3,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import UserProfile
 from .serializers import UserProfileSerializer
+from .permissions import CanModifyUserPermission
 
 # ==================== JWT认证接口（4个） ====================
 
@@ -244,9 +247,109 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     """
     用户档案管理（CRUD）
     
+    权限控制：
+    - 超级管理员：可以修改所有用户的权限
+    - 普通管理员：只能修改 monitor 和 viewer 的权限，不能修改自己和其他管理员的权限
+    - 其他用户：只能查看
+    
+    筛选和排序：
+    - 支持按用户名搜索（search 参数）
+    - 支持按角色筛选（role 参数）
+    - 支持按创建时间、用户名等字段排序（ordering 参数）
+    
     【答辩要点】
-    - 继承全局 IsAuthenticated 权限，必须携带有效JWT Token
+    - 使用 CanModifyUserPermission 进行细粒度权限控制
+    - 使用 SearchFilter 和 DjangoFilterBackend 支持搜索和筛选
+    - 使用 OrderingFilter 支持排序
     - ModelViewSet 自动提供 GET/POST/PUT/DELETE
     """
-    queryset = UserProfile.objects.all().order_by("-create_time")
+    queryset = UserProfile.objects.all().select_related('user').order_by("-create_time")
     serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated, CanModifyUserPermission]
+    
+    # 配置筛选和排序
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['role']  # 支持按角色筛选，例如：?role=admin
+    search_fields = ['user__username', 'phone', 'department']  # 支持搜索用户名、电话、部门
+    ordering_fields = ['create_time', 'user__username', 'role']  # 支持排序的字段
+    ordering = ['-create_time']  # 默认排序（按创建时间降序）
+    
+    def update(self, request, *args, **kwargs):
+        """
+        更新用户信息（PUT）
+        检查权限并验证是否可以修改角色
+        """
+        instance = self.get_object()
+        
+        # 检查权限（permission_classes 已经检查，但这里再次确认）
+        if not self.check_update_permission(request, instance):
+            return Response({
+                'success': False,
+                'message': '您没有权限修改此用户的权限'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 检查是否尝试修改角色为 admin（普通管理员不允许）
+        new_role = request.data.get('role')
+        if new_role == 'admin' and not request.user.is_superuser:
+            # 如果目标用户原本不是 admin，尝试设置为 admin
+            if instance.role != 'admin':
+                return Response({
+                    'success': False,
+                    'message': '只有超级管理员可以设置或修改管理员权限'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """
+        部分更新用户信息（PATCH）
+        检查权限并验证是否可以修改角色
+        """
+        instance = self.get_object()
+        
+        # 检查权限
+        if not self.check_update_permission(request, instance):
+            return Response({
+                'success': False,
+                'message': '您没有权限修改此用户的权限'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 检查是否尝试修改角色为 admin（普通管理员不允许）
+        if 'role' in request.data:
+            new_role = request.data.get('role')
+            if new_role == 'admin' and not request.user.is_superuser:
+                # 如果目标用户原本不是 admin，尝试设置为 admin
+                if instance.role != 'admin':
+                    return Response({
+                        'success': False,
+                        'message': '只有超级管理员可以设置或修改管理员权限'
+                    }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().partial_update(request, *args, **kwargs)
+    
+    def check_update_permission(self, request, instance):
+        """
+        检查是否有权限更新该用户
+        """
+        # 超级管理员拥有所有权限
+        if request.user.is_superuser:
+            return True
+        
+        # 非管理员用户不能修改任何权限
+        try:
+            user_profile = request.user.user_profile
+            if user_profile.role != 'admin':
+                return False
+        except:
+            return False
+        
+        # 普通管理员不能修改自己的权限
+        if instance.user == request.user:
+            return False
+        
+        # 普通管理员不能修改其他管理员的权限
+        if instance.role == 'admin':
+            return False
+        
+        # 普通管理员可以修改 monitor 和 viewer 的权限
+        return True
