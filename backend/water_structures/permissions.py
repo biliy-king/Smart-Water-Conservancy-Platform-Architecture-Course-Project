@@ -8,7 +8,9 @@ class IsAdminOrReadOnly(BasePermission):
         # 读操作全允许
         if request.method in ['GET', 'HEAD', 'OPTIONS']:
             return True
-        # 写删操作仅admin
+        # 写删操作仅admin，需要登录
+        if not request.user or not request.user.is_authenticated:
+            return False
         try:
             user_profile = request.user.user_profile
             return user_profile.role == 'admin'
@@ -25,8 +27,12 @@ class IsMonitorOrAdminForWrite(BasePermission):
         if request.method in ['GET', 'HEAD', 'OPTIONS']:
             return True
         
+        # 写操作需要登录
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
         # 如果是超级用户，直接允许
-        if request.user and request.user.is_superuser:
+        if request.user.is_superuser:
             return True
         
         try:

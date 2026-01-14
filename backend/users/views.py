@@ -5,10 +5,92 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from .models import UserProfile
 from .serializers import UserProfileSerializer
 
-# ==================== JWT认证接口（3个） ====================
+# ==================== JWT认证接口（4个） ====================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])  # 注册接口允许匿名访问
+def register_view(request):
+    """
+    用户注册接口
+    POST /api/users/register/
+    请求体: {"username": "newuser", "password": "password123"}
+    
+    【答辩要点】
+    1. 创建Django User对象（自动加密密码）
+    2. 创建关联的UserProfile对象（默认角色为viewer）
+    3. 返回JWT Token，注册后自动登录
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    # 参数校验
+    if not username or not password:
+        return Response({
+            'success': False,
+            'message': '用户名和密码不能为空'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # 检查用户名是否已存在
+    if User.objects.filter(username=username).exists():
+        return Response({
+            'success': False,
+            'message': '用户名已存在'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # 密码长度校验
+    if len(password) < 6:
+        return Response({
+            'success': False,
+            'message': '密码长度至少6位'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # 创建用户（Django会自动加密密码）
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            is_active=True  # 默认激活
+        )
+        
+        # 创建用户档案（默认角色为viewer）
+        profile = UserProfile.objects.create(
+            user=user,
+            role='viewer'
+        )
+        
+        # 生成JWT Token（注册后自动登录）
+        refresh = RefreshToken.for_user(user)
+        
+        # 构建用户信息
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': profile.role,
+            'phone': profile.phone,
+            'department': profile.department,
+        }
+        
+        return Response({
+            'success': True,
+            'message': '注册成功',
+            'tokens': {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            },
+            'user': user_data
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'注册失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])  # 【重点】登录接口允许匿名访问

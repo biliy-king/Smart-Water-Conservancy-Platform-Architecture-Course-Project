@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 
     # 注册DRF
     'rest_framework',
+    'rest_framework_simplejwt',  # JWT认证支持
     'corsheaders',
 ]
 
