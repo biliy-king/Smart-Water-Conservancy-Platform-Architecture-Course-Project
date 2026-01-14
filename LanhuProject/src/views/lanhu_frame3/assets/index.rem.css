@@ -1,0 +1,167 @@
+html {
+  font-size: 37.5px;
+}
+
+.page {
+  position: relative;
+  width: 21.84rem;
+  height: 30.96rem;
+  overflow: hidden;
+}
+
+.section_1 {
+  background-color: rgba(255, 252, 214, 1);
+  border-radius: 30px;
+  width: 21.84rem;
+  height: 30.96rem;
+  border: 5px solid rgba(247, 226, 88, 1);
+}
+
+.text_1 {
+  width: 7.68rem;
+  height: 2.774rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.706rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.707rem;
+  margin: 1.414rem 0 0 7.094rem;
+}
+
+.text_2 {
+  width: 3.2rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+  margin: 1.707rem 0 0 2.214rem;
+}
+
+.text_3 {
+  width: 5.334rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+  margin: 0.72rem 0 0 2.214rem;
+}
+
+.text_4 {
+  width: 3.2rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+  margin: 0.72rem 0 0 2.214rem;
+}
+
+.text_5 {
+  width: 5.334rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+  margin: 0.72rem 0 0 2rem;
+}
+
+.box_1 {
+  width: 8.08rem;
+  height: 3.627rem;
+  margin: 0.72rem 0 0 2.214rem;
+}
+
+.text_6 {
+  width: 3.2rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+}
+
+.section_2 {
+  width: 0.88rem;
+  height: 2.774rem;
+  margin: 0.267rem 0 0 1.04rem;
+}
+
+.box_2 {
+  background-color: rgba(109, 236, 97, 1);
+  border-radius: 50%;
+  width: 0.88rem;
+  height: 0.88rem;
+}
+
+.box_3 {
+  background-color: rgba(255, 82, 39, 1);
+  border-radius: 50%;
+  width: 0.88rem;
+  height: 0.88rem;
+  margin-top: 1.014rem;
+}
+
+.text-group_1 {
+  width: 2.134rem;
+  height: 3.627rem;
+  margin-left: 0.827rem;
+}
+
+.text_7 {
+  width: 2.134rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+}
+
+.text_8 {
+  width: 2.134rem;
+  height: 1.734rem;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 1.066rem;
+  font-family: Baloo Bhai 2-Regular;
+  font-weight: NaN;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.067rem;
+  margin-top: 0.16rem;
+}
+
+.image_1 {
+  width: 6.72rem;
+  height: 6.48rem;
+  margin: 5.147rem 0 0 14.56rem;
+}

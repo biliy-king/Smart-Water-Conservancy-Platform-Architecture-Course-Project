@@ -1,40 +1,66 @@
 <template>
-  <div class="register-page">
-    <div class="register-background"></div>
-    <div class="register-card">
-      <div class="register-header">
-        <h2 class="register-title">注册 Setup</h2>
+  <div class="page">
+    <div class="section_1">
+      <div class="box_1 flex-row">
+        <!-- 装饰图片1 - 左下角 -->
+        <img
+          class="image_1"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNG7c8238176f094a3f68b0358b561c52f6.png"
+          alt="Decoration 1"
+        />
+        <!-- 装饰图片2 - 左侧中间 -->
+        <img
+          class="image_2"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNGe2995af67c8dc1cdaaad4b07b1f09a97.png"
+          alt="Decoration 2"
+        />
+        <!-- 注册卡片 -->
+        <div class="group_2 flex-col">
+          <span class="text_1">注册&nbsp;Setup</span>
+          <div class="form-item">
+            <span class="text_2">设置用户名</span>
+            <input v-model="username" type="text" class="form-input" />
+            <div class="form-line"></div>
+          </div>
+          <div class="form-item">
+            <span class="text_3">设置密码</span>
+            <input v-model="password" type="password" class="form-input" />
+            <div class="form-line"></div>
+          </div>
+          <div class="form-item">
+            <span class="text_4">再次输入密码</span>
+            <input v-model="confirmPassword" type="password" class="form-input" />
+            <div class="form-line"></div>
+          </div>
+          <div class="text-wrapper_1 flex-col" @click="handleRegister" :class="{ disabled: loading }">
+            <span class="text_5">{{ loading ? '注册中...' : '注册' }}</span>
+          </div>
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+          <div class="text-wrapper_3 flex-row justify-between">
+            <span class="text_6">已有账号？</span>
+            <span class="text_7" @click="$emit('switch-to-login')">去登录</span>
+          </div>
+        </div>
+        <!-- 装饰图片3 - 右侧中间 -->
+        <img
+          class="image_3"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNGf8871e5d7d5c13b58215073c91ae75e2.png"
+          alt="Decoration 3"
+        />
+        <!-- 装饰图片4 - 右下角 -->
+        <img
+          class="image_4"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNG6f9d4f80b5079d47ed499decb938bc02.png"
+          alt="Decoration 4"
+        />
       </div>
-      <div class="register-form">
-        <div class="form-item">
-          <label class="form-label">设置用户名</label>
-          <input v-model="username" type="text" class="form-input" placeholder="请输入用户名" />
-          <div class="form-line"></div>
-        </div>
-        <div class="form-item">
-          <label class="form-label">设置密码</label>
-          <input v-model="password" type="password" class="form-input" placeholder="请输入密码" />
-          <div class="form-line"></div>
-        </div>
-        <div class="form-item">
-          <label class="form-label">再次输入密码</label>
-          <input v-model="confirmPassword" type="password" class="form-input" placeholder="请再次输入密码" />
-          <div class="form-line"></div>
-        </div>
-        <button class="register-button" @click="handleRegister">
-          <span class="button-text">注册</span>
-        </button>
-        <div class="login-link">
-          <span class="link-text">已有账号？</span>
-          <span class="link-action" @click="$emit('switch-to-login')">去登录</span>
-        </div>
-      </div>
-      <div class="register-decorations">
-        <div class="decoration decoration-1"></div>
-        <div class="decoration decoration-2"></div>
-        <div class="decoration decoration-3"></div>
-        <div class="decoration decoration-4"></div>
-        <div class="decoration decoration-5"></div>
+      <!-- 装饰图片5 - 右上角 -->
+      <div class="image-wrapper_2 flex-row">
+        <img
+          class="image_5"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNGaa72bdee37d82e2868ecf7b3d9cc6b4e.png"
+          alt="Decoration 5"
+        />
       </div>
     </div>
   </div>
@@ -42,223 +68,387 @@
 
 <script setup>
 import { ref } from 'vue'
+import { register } from '@/api/auth'
+import { setLoggedIn } from '@/store/auth'
 
 const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-
-function handleRegister() {
-  if (!username.value || !password.value || !confirmPassword.value) {
-    alert('请填写所有字段')
-    return
-  }
-  if (password.value !== confirmPassword.value) {
-    alert('两次输入的密码不一致')
-    return
-  }
-  // 注册逻辑
-  console.log('注册:', username.value, password.value)
-  emit('close')
-}
+const loading = ref(false)
+const errorMessage = ref('')
 
 const emit = defineEmits(['close', 'switch-to-login'])
+
+async function handleRegister() {
+  // 验证输入
+  if (!username.value || !password.value || !confirmPassword.value) {
+    errorMessage.value = '请填写所有字段'
+    return
+  }
+  
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = '两次输入的密码不一致'
+    return
+  }
+  
+  if (password.value.length < 6) {
+    errorMessage.value = '密码长度至少6位'
+    return
+  }
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    // 调用注册接口
+    const response = await register(username.value, password.value)
+    
+    if (response.data.success) {
+      // 保存token和用户信息
+      localStorage.setItem('access_token', response.data.tokens.access)
+      localStorage.setItem('refresh_token', response.data.tokens.refresh)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      
+      // 更新认证状态
+      setLoggedIn()
+      
+      console.log('注册成功:', response.data.user)
+      
+      // 关闭注册页面
+      emit('close')
+    } else {
+      errorMessage.value = response.data.message || '注册失败'
+    }
+  } catch (error) {
+    // 处理错误
+    console.error('注册错误:', error)
+    
+    if (error.response?.data?.message) {
+      errorMessage.value = error.response.data.message
+    } else if (error.response?.data?.detail) {
+      errorMessage.value = error.response.data.detail
+    } else {
+      errorMessage.value = '注册失败，请检查网络连接或联系管理员'
+    }
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style scoped>
-.register-page {
-  width: 100vw;
-  height: 100vh;
+/* Flexbox 工具类 */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+/* 主容器 */
+.page {
+  background-color: rgba(255, 255, 255, 1);
   position: relative;
+  width: 2560px;
+  height: 1400px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
-.register-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-size: cover;
-  z-index: 0;
-}
-
-.register-card {
+/* 背景区域 */
+.section_1 {
+  height: 1400px;
+  background: url(https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNG1128297724d259c8891a24e415425f3c.png) 100% no-repeat;
+  background-size: 100% 100%;
+  margin-left: -47px;
+  width: 2607px;
   position: relative;
+}
+
+/* 主要内容组 */
+.box_1 {
+  width: 2489px;
+  height: 1219px;
+  margin: 181px 0 0 47px;
+  position: relative;
+}
+
+/* 所有装饰图片通用样式 - 无边框 */
+.section_1 img {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
+/* 装饰图片1 - 左下角 */
+.image_1 {
+  width: 367px;
+  height: 377px;
+  margin-top: 842px;
+  object-fit: cover;
+}
+
+/* 装饰图片2 - 左侧中间 */
+.image_2 {
+  width: 213px;
+  height: 334px;
+  margin: 92px 0 0 21px;
+  object-fit: cover;
+}
+
+/* 注册卡片 */
+.group_2 {
+  box-shadow: 4px 4px 4px 4px rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 50px;
   width: 771px;
   height: 1039px;
-  background: #FFFFFF;
-  border-radius: 50px;
-  box-shadow: 4px 4px 4px 4px rgba(0, 0, 0, 0.25);
-  padding: 181px 100px;
-  box-sizing: border-box;
-  z-index: 1;
-}
-
-.register-header {
-  margin-bottom: 60px;
-}
-
-.register-title {
-  font-family: 'Baloo Bhai 2', sans-serif;
-  font-weight: 400;
-  font-size: 64px;
-  color: #000000;
-  text-align: center;
-  margin: 0;
-}
-
-.register-form {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.form-item {
+  margin-left: 294px;
   position: relative;
 }
 
-.form-label {
-  display: block;
+/* 标题 */
+.text_1 {
+  width: 302px;
+  height: 104px;
+  overflow-wrap: break-word;
+  color: rgba(0, 0, 0, 1);
+  font-size: 64px;
   font-family: 'Baloo Bhai 2', sans-serif;
   font-weight: 400;
-  font-size: 32px;
-  color: #797979;
-  margin-bottom: 12px;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 64px;
+  margin: 122px 0 0 239px;
 }
 
-.form-input {
+/* 表单项 */
+.form-item {
+  position: relative;
   width: 100%;
+  margin-top: 101px;
+}
+
+.form-item:first-of-type {
+  margin-top: 101px;
+}
+
+.form-item:nth-of-type(2) {
+  margin-top: 47px;
+}
+
+.form-item:nth-of-type(3) {
+  margin-top: 47px;
+}
+
+/* 表单标签 */
+.text_2 {
+  width: 160px;
+  height: 52px;
+  overflow-wrap: break-word;
+  color: rgba(121, 121, 121, 1);
+  font-size: 32px;
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 32px;
+  margin: 0 0 0 120px;
+  display: block;
+}
+
+.text_3 {
+  width: 128px;
+  height: 52px;
+  overflow-wrap: break-word;
+  color: rgba(121, 121, 121, 1);
+  font-size: 32px;
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 32px;
+  margin: 0 0 0 120px;
+  display: block;
+}
+
+.text_4 {
+  width: 192px;
+  height: 52px;
+  overflow-wrap: break-word;
+  color: rgba(121, 121, 121, 1);
+  font-size: 32px;
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 32px;
+  margin: 0 0 0 119px;
+  display: block;
+}
+
+/* 输入框 */
+.form-input {
+  width: 558px;
   border: none;
   outline: none;
-  font-size: 32px;
-  padding: 8px 0;
   background: transparent;
-  color: #000000;
+  color: rgba(0, 0, 0, 1);
+  font-size: 32px;
+  font-family: 'Baloo Bhai 2', sans-serif;
+  margin: 8px 0 0 120px;
+  padding: 0;
+}
+
+.form-item:nth-of-type(3) .form-input {
+  margin-left: 119px;
 }
 
 .form-line {
   position: absolute;
   bottom: 0;
-  left: 0;
+  left: 120px;
   width: 558px;
   height: 1px;
-  background: #000000;
+  background: rgba(0, 0, 0, 1);
 }
 
-.register-button {
-  width: 538px;
-  height: 81px;
-  background: linear-gradient(163deg, rgba(253, 240, 184, 1) 0%, rgba(209, 240, 254, 1) 100%);
-  border: none;
+.form-item:nth-of-type(3) .form-line {
+  left: 119px;
+}
+
+/* 注册按钮 */
+.text-wrapper_1 {
+  background-image: linear-gradient(
+    86deg,
+    rgba(253, 240, 184, 1) 0,
+    rgba(209, 240, 254, 1) 100%
+  );
   border-radius: 15px;
+  height: 81px;
+  width: 538px;
+  margin: 101px 0 0 116px;
   cursor: pointer;
-  margin-top: 40px;
-  transition: transform 0.2s;
-}
-
-.register-button:hover {
-  transform: scale(1.02);
-}
-
-.register-button:active {
-  transform: scale(0.98);
-}
-
-.button-text {
-  font-family: 'Baloo Bhai 2', sans-serif;
-  font-weight: 400;
-  font-size: 40px;
-  color: #0F1419;
-}
-
-.login-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 40px;
+  transition: transform 0.2s;
 }
 
-.link-text {
-  font-family: 'Baloo Bhai 2', sans-serif;
-  font-weight: 400;
-  font-size: 32px;
-  color: #6D6C6C;
+.text-wrapper_1:hover {
+  transform: scale(1.02);
 }
 
-.link-action {
+.text-wrapper_1:active {
+  transform: scale(0.98);
+}
+
+.text_5 {
+  width: 80px;
+  height: 65px;
+  overflow-wrap: break-word;
+  color: rgba(15, 20, 25, 1);
+  font-size: 40px;
   font-family: 'Baloo Bhai 2', sans-serif;
   font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 40px;
+}
+
+/* 登录链接 */
+.text-wrapper_3 {
+  width: 256px;
+  height: 52px;
+  margin: 47px 0 181px 257px;
+}
+
+.text_6 {
+  width: 160px;
+  height: 52px;
+  overflow-wrap: break-word;
+  color: rgba(109, 108, 108, 1);
   font-size: 32px;
-  color: #6DC2FF;
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 32px;
+}
+
+.text_7 {
+  width: 96px;
+  height: 52px;
+  overflow-wrap: break-word;
+  color: rgba(109, 194, 255, 1);
+  font-size: 32px;
+  font-family: 'Baloo Bhai 2', sans-serif;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 32px;
   cursor: pointer;
+}
+
+.text_7:hover {
   text-decoration: underline;
 }
 
-.link-action:hover {
-  color: #4AA3E8;
+/* 错误消息 */
+.error-message {
+  color: #f56c6c;
+  font-size: 24px;
+  margin: 20px 0 0 120px;
+  text-align: left;
+  min-height: 30px;
 }
 
-.register-decorations {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.decoration {
-  position: absolute;
-  background-size: cover;
-  background-position: center;
+/* 禁用状态 */
+.disabled {
   opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.decoration-1 {
-  width: 367px;
-  height: 377px;
-  bottom: 0;
-  left: 0;
-  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzY3IiBoZWlnaHQ9IjM3NyIgdmlld0JveD0iMCAwIDM2NyAzNzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzNjciIGhlaWdodD0iMzc3IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==') no-repeat;
+/* 装饰图片3 - 右侧中间 */
+.image_3 {
+  width: 395px;
+  height: 270px;
+  margin: 430px 0 0 138px;
+  object-fit: cover;
 }
 
-.decoration-2 {
-  width: 208px;
-  height: 186px;
-  top: 18px;
-  right: 1398px;
-  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjA4IiBoZWlnaHQ9IjE4NiIgdmlld0JveD0iMCAwIDIwOCAxODYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDgiIGhlaWdodD0iMTg2IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==') no-repeat;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-}
-
-.decoration-3 {
-  width: 213px;
-  height: 334px;
-  top: 273px;
-  left: 388px;
-  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEzIiBoZWlnaHQ9IjMzNCIgdmlld0JveD0iMCAwIDIxMyAzMzQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMTMiIGhlaWdodD0iMzM0IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==') no-repeat;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-}
-
-.decoration-4 {
-  width: 450.5px;
-  height: 362.49px;
-  top: 508px;
-  right: 1804px;
-  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDUwLjUiIGhlaWdodD0iMzYyLjQ5IiB2aWV3Qm94PSIwIDAgNDUwLjUgMzYyLjQ5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iNDUwLjUiIGhlaWdodD0iMzYyLjQ5IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==') no-repeat;
-}
-
-.decoration-5 {
+/* 装饰图片4 - 右下角 */
+.image_4 {
   width: 234px;
   height: 325px;
-  bottom: 1075px;
-  right: 2255px;
-  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM0IiBoZWlnaHQ9IjMyNSIgdmlld0JveD0iMCAwIDIzNCAzMjUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMzQiIGhlaWdodD0iMzI1IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==') no-repeat;
+  margin: 894px 0 0 56px;
+  object-fit: cover;
 }
+
+/* 装饰图片5 - 右上角 */
+.image-wrapper_2 {
+  position: absolute;
+  left: 1445px;
+  top: 18px;
+  width: 208px;
+  height: 186px;
+}
+
+.image_5 {
+  width: 208px;
+  height: 186px;
+  object-fit: cover;
+}
+
 </style>

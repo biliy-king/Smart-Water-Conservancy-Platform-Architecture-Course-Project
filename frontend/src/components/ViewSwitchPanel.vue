@@ -21,17 +21,25 @@ import { ref } from 'vue'
 
 const views = ref([
   { id: 1, name: '水库视角' },
-  { id: 2, name: '聚焦测点' },
-  { id: 3, name: '大坝视角' },
-  { id: 4, name: '全景视角' },
-  { id: 5, name: '地球视角' }
+  { id: 2, name: '大坝视角' },
+  { id: 3, name: '全景视角' },
+  { id: 4, name: '地球视角' }
 ])
 
 const selectedView = ref(1)
 
+const emit = defineEmits(['switch-view'])
+
 function selectView(view) {
   selectedView.value = view.id
   // 触发视角切换事件
+  const viewMap = {
+    1: 'reservoirView',
+    2: 'damView',
+    3: 'panoramaView',
+    4: 'earthView'
+  }
+  emit('switch-view', viewMap[view.id] || 'frontendView')
   console.log('切换视角:', view.name)
 }
 </script>

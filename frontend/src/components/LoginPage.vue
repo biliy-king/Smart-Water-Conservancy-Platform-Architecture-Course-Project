@@ -5,55 +5,56 @@
         <!-- 装饰图片1 - 左下角 -->
         <img
           class="image_1"
-          src="/images/decoration1.png"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNG7c8238176f094a3f68b0358b561c52f6.png"
           alt="Decoration 1"
         />
         <!-- 装饰图片2 - 左侧中间 -->
         <img
           class="image_2"
-          src="/images/decoration3.png"
-          alt="Decoration 3"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNGe2995af67c8dc1cdaaad4b07b1f09a97.png"
+          alt="Decoration 2"
         />
         <!-- 登录卡片 -->
         <div class="group_2 flex-col">
-          <span class="text_1">登录 Login</span>
+          <span class="text_1">登录&nbsp;Login</span>
           <div class="form-item">
-            <label class="text_2">用户名 username</label>
+            <span class="text_2">用户名&nbsp;username</span>
             <input v-model="username" type="text" class="form-input" />
             <div class="form-line"></div>
           </div>
           <div class="form-item">
-            <label class="text_3">密码 password</label>
+            <span class="text_3">密码&nbsp;password</span>
             <input v-model="password" type="password" class="form-input" />
             <div class="form-line"></div>
           </div>
-          <div class="text-wrapper_1 flex-col" @click="handleLogin">
-            <span class="text_5">登 录</span>
+          <div class="text-wrapper_1 flex-col" @click="handleLogin" :class="{ disabled: loading }">
+            <span class="text_4">{{ loading ? '登录中...' : '登&nbsp;录' }}</span>
           </div>
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
           <div class="text-wrapper_2 flex-row justify-between">
-            <span class="text_6">没有账号？</span>
-            <span class="text_7" @click="$emit('switch-to-register')">注册一个</span>
+            <span class="text_5">没有账号？</span>
+            <span class="text_6" @click="$emit('switch-to-register')">注册一个</span>
           </div>
         </div>
         <!-- 装饰图片3 - 右侧中间 -->
         <img
           class="image_3"
-          src="/images/decoration4.png"
-          alt="Decoration 4"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNGf8871e5d7d5c13b58215073c91ae75e2.png"
+          alt="Decoration 3"
         />
         <!-- 装饰图片4 - 右下角 -->
         <img
           class="image_4"
-          src="/images/decoration5.png"
-          alt="Decoration 5"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNG6f9d4f80b5079d47ed499decb938bc02.png"
+          alt="Decoration 4"
         />
       </div>
       <!-- 装饰图片5 - 右上角 -->
       <div class="image-wrapper_1 flex-row">
         <img
           class="image_5"
-          src="/images/decoration2.png"
-          alt="Decoration 2"
+          src="https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNGaa72bdee37d82e2868ecf7b3d9cc6b4e.png"
+          alt="Decoration 5"
         />
       </div>
     </div>
@@ -62,21 +63,61 @@
 
 <script setup>
 import { ref } from 'vue'
+import { login } from '@/api/auth'
+import { setLoggedIn } from '@/store/auth'
 
 const username = ref('')
 const password = ref('')
-
-function handleLogin() {
-  if (!username.value || !password.value) {
-    alert('请输入用户名和密码')
-    return
-  }
-  // 登录逻辑
-  console.log('登录:', username.value, password.value)
-  emit('close')
-}
+const loading = ref(false)
+const errorMessage = ref('')
 
 const emit = defineEmits(['close', 'switch-to-register'])
+
+async function handleLogin() {
+  // 验证输入
+  if (!username.value || !password.value) {
+    errorMessage.value = '请输入用户名和密码'
+    return
+  }
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    // 调用登录接口
+    const response = await login(username.value, password.value)
+    
+    if (response.data.success) {
+      // 保存token和用户信息
+      localStorage.setItem('access_token', response.data.tokens.access)
+      localStorage.setItem('refresh_token', response.data.tokens.refresh)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      
+      // 更新认证状态
+      setLoggedIn()
+      
+      console.log('登录成功:', response.data.user)
+      
+      // 关闭登录页面
+      emit('close')
+    } else {
+      errorMessage.value = response.data.message || '登录失败'
+    }
+  } catch (error) {
+    // 处理错误
+    console.error('登录错误:', error)
+    
+    if (error.response?.data?.message) {
+      errorMessage.value = error.response.data.message
+    } else if (error.response?.data?.detail) {
+      errorMessage.value = error.response.data.detail
+    } else {
+      errorMessage.value = '登录失败，请检查网络连接或联系管理员'
+    }
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -99,8 +140,8 @@ const emit = defineEmits(['close', 'switch-to-register'])
 .page {
   background-color: rgba(255, 255, 255, 1);
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 2560px;
+  height: 1400px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -109,14 +150,12 @@ const emit = defineEmits(['close', 'switch-to-register'])
 
 /* 背景区域 */
 .section_1 {
-  height: 1562px;
-  background: url(/images/background.png) 100% no-repeat;
+  height: 1400px;
+  background: url(https://lanhu-oss-2537-2.lanhuapp.com/FigmaDDSSlicePNG1128297724d259c8891a24e415425f3c.png) 100% no-repeat;
   background-size: 100% 100%;
   margin-left: -47px;
-  width: 2778px;
+  width: 2607px;
   position: relative;
-  max-width: 100vw;
-  max-height: 100vh;
 }
 
 /* 主要内容组 */
@@ -125,6 +164,15 @@ const emit = defineEmits(['close', 'switch-to-register'])
   height: 1219px;
   margin: 181px 0 0 47px;
   position: relative;
+}
+
+/* 所有装饰图片通用样式 - 无边框 */
+.section_1 img {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
 }
 
 /* 装饰图片1 - 左下角 */
@@ -141,7 +189,6 @@ const emit = defineEmits(['close', 'switch-to-register'])
   height: 334px;
   margin: 92px 0 0 21px;
   object-fit: cover;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
 
 /* 登录卡片 */
@@ -225,7 +272,7 @@ const emit = defineEmits(['close', 'switch-to-register'])
   color: rgba(0, 0, 0, 1);
   font-size: 32px;
   font-family: 'Baloo Bhai 2', sans-serif;
-  margin: 0 0 0 120px;
+  margin: 8px 0 0 120px;
   padding: 0;
 }
 
@@ -241,14 +288,14 @@ const emit = defineEmits(['close', 'switch-to-register'])
 /* 登录按钮 */
 .text-wrapper_1 {
   background-image: linear-gradient(
-    163deg,
+    86deg,
     rgba(253, 240, 184, 1) 0,
     rgba(209, 240, 254, 1) 100%
   );
   border-radius: 15px;
   height: 81px;
   width: 538px;
-  margin: 101px 0 0 116px;
+  margin: 81px 0 0 116px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -264,7 +311,7 @@ const emit = defineEmits(['close', 'switch-to-register'])
   transform: scale(0.98);
 }
 
-.text_5 {
+.text_4 {
   width: 89px;
   height: 65px;
   overflow-wrap: break-word;
@@ -281,10 +328,10 @@ const emit = defineEmits(['close', 'switch-to-register'])
 .text-wrapper_2 {
   width: 288px;
   height: 52px;
-  margin: 81px 0 181px 113px;
+  margin: 81px 0 266px 241px;
 }
 
-.text_6 {
+.text_5 {
   width: 160px;
   height: 52px;
   overflow-wrap: break-word;
@@ -297,7 +344,7 @@ const emit = defineEmits(['close', 'switch-to-register'])
   line-height: 32px;
 }
 
-.text_7 {
+.text_6 {
   width: 128px;
   height: 52px;
   overflow-wrap: break-word;
@@ -311,14 +358,29 @@ const emit = defineEmits(['close', 'switch-to-register'])
   cursor: pointer;
 }
 
-.text_7:hover {
+.text_6:hover {
   text-decoration: underline;
+}
+
+/* 错误消息 */
+.error-message {
+  color: #f56c6c;
+  font-size: 24px;
+  margin: 20px 0 0 120px;
+  text-align: left;
+  min-height: 30px;
+}
+
+/* 禁用状态 */
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 装饰图片3 - 右侧中间 */
 .image_3 {
-  width: 450.5px;
-  height: 362.49px;
+  width: 395px;
+  height: 270px;
   margin: 430px 0 0 138px;
   object-fit: cover;
 }
@@ -344,117 +406,6 @@ const emit = defineEmits(['close', 'switch-to-register'])
   width: 208px;
   height: 186px;
   object-fit: cover;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
 
-/* 响应式调整 */
-@media (max-width: 2560px) {
-  .page {
-    transform: scale(calc(100vw / 2560));
-    transform-origin: top left;
-  }
-  
-  .section_1 {
-    transform: scale(1);
-  }
-}
-
-@media (max-width: 1920px) {
-  .page {
-    transform: scale(calc(100vw / 2560));
-  }
-}
-
-@media (max-width: 1440px) {
-  .page {
-    transform: scale(calc(100vw / 2560));
-  }
-  
-  .group_2 {
-    padding: 0 20px;
-  }
-  
-  .text_1 {
-    font-size: 48px;
-    margin-left: 20px;
-  }
-  
-  .text_2,
-  .text_3,
-  .form-input {
-    font-size: 24px;
-  }
-  
-  .form-input,
-  .form-line {
-    width: calc(100% - 240px);
-    max-width: 480px;
-  }
-  
-  .text-wrapper_1 {
-    width: 100%;
-    max-width: 480px;
-    margin-left: 20px;
-  }
-}
-
-@media (max-width: 768px) {
-  .page {
-    transform: scale(1);
-  }
-  
-  .section_1 {
-    width: 100vw;
-    margin-left: 0;
-    background-size: cover;
-  }
-  
-  .group_1 {
-    width: 100%;
-    margin: 50px 0 0 0;
-    flex-wrap: wrap;
-  }
-  
-  .group_2 {
-    width: 90vw;
-    max-width: 500px;
-    margin: 0 auto;
-    height: auto;
-    min-height: 600px;
-  }
-  
-  .image_1,
-  .image_2,
-  .image_3,
-  .image_4,
-  .image-wrapper_1 {
-    display: none;
-  }
-  
-  .text_1 {
-    font-size: 36px;
-    margin: 60px auto 0;
-    text-align: center;
-  }
-  
-  .text_2,
-  .text_3 {
-    margin-left: 20px;
-  }
-  
-  .form-input,
-  .form-line {
-    margin-left: 20px;
-    width: calc(100% - 40px);
-  }
-  
-  .text-wrapper_1 {
-    margin-left: 20px;
-    width: calc(100% - 40px);
-  }
-  
-  .text-wrapper_2 {
-    margin-left: 20px;
-  }
-}
 </style>
