@@ -51,3 +51,53 @@ export function batchCreateMonitorData(dataList) {
 export function getStatistics() {
   return api.get('/monitoring/statistics/')
 }
+
+/**
+ * 获取指定测点的最新监测数据（虚拟实时数据）
+ * @param {number} pointId - 测点ID
+ * @returns {Promise} 最新监测数据
+ */
+export function getLatestDataByPoint(pointId) {
+  return api.get(`/monitoring/latest/${pointId}/`)
+}
+
+/**
+ * 获取指定测点的历史数据
+ * @param {number} pointId - 测点ID
+ * @param {Object} params - 查询参数
+ * @param {number} params.days - 查询天数，默认7天
+ * @param {number} params.page - 页码，默认1
+ * @param {number} params.size - 每页数量，默认100
+ * @returns {Promise} 历史数据
+ */
+export function getHistoryDataByPoint(pointId, params = {}) {
+  return api.get(`/monitoring/history/${pointId}/`, { params })
+}
+
+/**
+ * 更新监测数据
+ * @param {number} id - 监测数据ID
+ * @param {Object} data - 监测数据
+ * @returns {Promise} 更新后的监测数据
+ */
+export function updateMonitorData(id, data) {
+  return api.put(`/monitoring/data/${id}/`, data)
+}
+
+/**
+ * 删除监测数据
+ * @param {number} id - 监测数据ID
+ * @returns {Promise}
+ */
+export function deleteMonitorData(id) {
+  return api.delete(`/monitoring/data/${id}/`)
+}
+
+/**
+ * 批量删除监测数据
+ * @param {Array} ids - 监测数据ID数组
+ * @returns {Promise}
+ */
+export function batchDeleteMonitorData(ids) {
+  return api.post('/monitoring/data/batch-delete/', { ids })
+}
