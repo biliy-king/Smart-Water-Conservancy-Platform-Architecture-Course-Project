@@ -7,11 +7,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, provide } from 'vue'
 
 const scale = ref(1)
 const designWidth = 2560
 const designHeight = 1400
+
+// 暴露缩放比例给子组件使用
+provide('pageScale', scale)
 
 const scalerStyle = ref({
   transform: `scale(${scale.value})`,
@@ -60,10 +63,13 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background-color: #f5f5f5;
+  background-color: #000; /* 改为黑色，避免白边 */
   position: fixed;
   top: 0;
   left: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .page-scaler-content {

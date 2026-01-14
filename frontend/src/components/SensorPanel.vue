@@ -21,7 +21,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getPoints, getPoint } from '@/api/waterStructures'
+import { getPoints } from '@/api/waterStructures'
 
 const emit = defineEmits(['select-sensor'])
 
@@ -29,66 +29,109 @@ const sensors = ref([])
 const loading = ref(false)
 const selectedSensor = ref(null)
 
-// 加载监测点列表
+// 定义10个测点（EX1-10）
+const SENSOR_LIST = [
+  'EX1', 'EX2', 'EX3', 'EX4', 'EX5', 'EX6', 'EX7', 'EX8', 'EX9', 'EX10'
+]
+
+// 加载监测点列表（从后端获取 pointId）
 async function loadSensors() {
   loading.value = true
   
   try {
-    // 获取所有监测点（不限制分页，或者设置较大的page_size）
-    const response = await getPoints({ page_size: 100 })
+    // 从后端获取所有测点
+    const response = await getPoints({ page_size: 1000 })
+    const allPoints = response.data?.results || response.data || []
     
-    // 转换数据格式并获取每个监测点的状态
-    const points = response.data.results || []
+
     
-    // 为每个监测点获取详细信息（包含实时状态）
-    const sensorsWithStatus = await Promise.all(
-      points.map(async (point) => {
-        try {
-          // 获取监测点详情（包含current_status等P0增强字段）
-          const detailResponse = await getPoint(point.id)
-          const detail = detailResponse.data
-          
-          // 状态映射
-          let status = 'normal'
-          let statusText = '正常'
-          if (detail.current_status === 'warning') {
-            status = 'warning'
-            statusText = '预警'
-          } else if (detail.current_status === 'alarm') {
-            status = 'abnormal'
-            statusText = '告警'
-          }
-          
-          return {
-            id: point.id,
-            name: point.point_code || `监测点${point.id}`,
-            status: status,
-            statusText: statusText,
-            rawData: point,
-            detail: detail
-          }
-        } catch (error) {
-          console.error(`获取监测点${point.id}详情失败:`, error)
-          // 如果获取详情失败，使用默认状态
-          return {
-            id: point.id,
-            name: point.point_code || `监测点${point.id}`,
-            status: 'normal',
-            statusText: '正常',
-            rawData: point
+    // 建立映射：EX1对应EX1-2-位移mm，EX2对应EX1-3-位移mm，以此类推
+    const pointMap = {}
+    allPoints.forEach(point => {
+      // 使用多种可能的字段名来获取测点名称
+      const sensorName = point.point_code || 
+                       point.name || 
+                       point.device_info?.device_name ||
+                       point.device_name
+
+      if (sensorName) {
+        const code = sensorName.toUpperCase().trim()
+        // 直接使用测点名称作为key
+        pointMap[code] = point
+
+        // 建立EX映射：EX1-2-位移mm → EX1, EX1-3-位移mm → EX2, EX1-4-位移mm → EX3, ...
+        const match = code.match(/^EX1-(\d+)-位移MM$/i)
+        if (match) {
+          const deviceNum = parseInt(match[1])
+          // EX1-2-位移mm → EX1, EX1-3-位移mm → EX2, EX1-4-位移mm → EX3, ...
+          // deviceNum从2开始，对应EX1；deviceNum=3对应EX2，所以公式是：EX(deviceNum-1)
+          if (deviceNum >= 2 && deviceNum <= 11) {
+            const exName = `EX${deviceNum - 1}`
+            pointMap[exName] = point
           }
         }
-      })
-    )
+      }
+    })
     
-    sensors.value = sensorsWithStatus
-    console.log('加载监测点成功，共', sensors.value.length, '个')
+
+    
+    // 创建测点数据，优先使用后端数据
+    sensors.value = SENSOR_LIST.map((sensorName) => {
+      const upperName = sensorName.toUpperCase()
+      const matchedPoint = pointMap[upperName] || pointMap[sensorName]
+      
+      if (matchedPoint) {
+        // 使用后端返回的完整测点信息
+        return {
+          id: sensorName, // 使用EX1-EX10作为ID（用于UI显示和Cesium飞行定位）
+          name: sensorName, // 直接使用EX1-EX10作为名称（用于UI显示和Cesium飞行定位）
+          pointId: matchedPoint.id, // 从后端获取的数字ID（用于加载详情）
+          status: matchedPoint.current_status || 'normal', // 使用后端的状态
+          statusText: getStatusText(matchedPoint.current_status || 'normal'),
+          rawData: matchedPoint, // 保存完整的测点数据
+          detail: matchedPoint // 保存完整的测点详情
+        }
+      } else {
+        // 如果后端没有匹配的测点，使用默认值
+        return {
+          id: sensorName,
+          name: sensorName,
+          pointId: null,
+          status: 'normal',
+          statusText: '正常',
+          rawData: null,
+          detail: null
+        }
+      }
+    })
+    
+
   } catch (error) {
-    console.error('加载监测点失败:', error)
-    sensors.value = []
+    console.error('加载测点失败:', error)
+    // 如果失败，至少显示测点名称
+    sensors.value = SENSOR_LIST.map(name => ({
+      id: name,
+      name: name,
+      pointId: null,
+      status: 'normal',
+      statusText: '正常',
+      rawData: null,
+      detail: null
+    }))
   } finally {
     loading.value = false
   }
+}
+
+// 获取状态文本
+function getStatusText(status) {
+  const statusMap = {
+    normal: '正常',
+    warning: '预警',
+    alarm: '告警',
+    abnormal: '异常'
+  }
+  return statusMap[status] || '正常'
 }
 
 function selectSensor(sensor) {

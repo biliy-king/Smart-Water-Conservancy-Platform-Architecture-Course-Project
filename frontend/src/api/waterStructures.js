@@ -46,6 +46,14 @@ export function getPoints(params = {}) {
 }
 
 /**
+ * 获取有监测数据的测点列表
+ * @returns {Promise} 有数据的测点列表
+ */
+export function getPointsWithData() {
+  return api.get('/water-structures/points/with_data/')
+}
+
+/**
  * 获取单个监测点详情
  * @param {number} id - 监测点ID
  * @returns {Promise} 监测点详情
@@ -71,4 +79,32 @@ export function getPointThresholds(id) {
  */
 export function updatePointThresholds(id, thresholds) {
   return api.put(`/water-structures/points/${id}/thresholds/`, thresholds)
+}
+
+/**
+ * 创建大坝
+ * @param {Object} data - 大坝数据
+ * @returns {Promise} 创建的大坝
+ */
+export function createStructure(data) {
+  return api.post('/water-structures/structures/', data)
+}
+
+/**
+ * 更新大坝
+ * @param {number} id - 大坝ID
+ * @param {Object} data - 大坝数据
+ * @returns {Promise} 更新后的大坝
+ */
+export function updateStructure(id, data) {
+  return api.put(`/water-structures/structures/${id}/`, data)
+}
+
+/**
+ * 删除大坝
+ * @param {number} id - 大坝ID
+ * @returns {Promise}
+ */
+export function deleteStructure(id) {
+  return api.delete(`/water-structures/structures/${id}/`)
 }

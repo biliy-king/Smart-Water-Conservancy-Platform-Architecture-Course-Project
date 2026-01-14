@@ -19,6 +19,7 @@
       <SceneView 
         v-else-if="currentView === 'scene' && isLoggedIn"
         @show-login="handleLogout"
+        @logout="handleLogout"
         @switch-to-database="switchView('database')"
       />
       
@@ -49,7 +50,7 @@ import DatabaseViewPage from './views/DatabaseViewPage.vue'
 import { useAuth } from './store/auth'
 
 // 使用认证状态管理
-const { isLoggedIn, updateAuthStatus, setLoggedIn } = useAuth()
+const { isLoggedIn, updateAuthStatus, setLoggedIn, clearAuth } = useAuth()
 
 // 当前视图：'login' | 'register' | 'scene' | 'database'
 // 默认始终为登录页，只有在确认已登录后才切换
@@ -174,7 +175,10 @@ function handleRegisterSuccess() {
 
 // 处理登出
 function handleLogout() {
-  switchView('login')
+  // 清除认证信息
+  clearAuth()
+  // 切换到登录页
+  currentView.value = 'login'
 }
 </script>
 
@@ -184,5 +188,8 @@ function handleLogout() {
   height: 1400px;
   overflow: hidden;
   position: relative;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 </style>

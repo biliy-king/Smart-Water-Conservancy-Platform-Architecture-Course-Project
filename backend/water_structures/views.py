@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from .serializers import PointSerializer, ThresholdSerializer
 from .segment_manager import get_all_segments, get_segment_summary
 from .serializers import SegmentSummarySerializer, SegmentDetailSerializer
+from monitoring.models import MonitorData
 
 # 大坝视图集（加载Cesium大坝模型的核心接口）
 class StructureViewSet(viewsets.ModelViewSet):
@@ -64,3 +65,22 @@ class PointViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def with_data(self, request):
+        """
+        获取有监测数据的测点列表
+        GET /api/water-structures/points/with_data/
+        只返回至少有一条监测数据的测点
+        """
+        # 获取所有有监测数据的测点ID
+        point_ids_with_data = MonitorData.objects.values_list('point_id', flat=True).distinct()
+        
+        # 获取这些测点的详细信息
+        points = Point.objects.filter(id__in=point_ids_with_data).select_related('device', 'device__structure')
+        
+        serializer = self.get_serializer(points, many=True)
+        return Response({
+            'count': points.count(),
+            'results': serializer.data
+        })

@@ -11,11 +11,11 @@
 
 html,
 body {
-  width: 100%;
-  height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* 防止出现滚动条 */
 }
 
 body {
@@ -27,10 +27,11 @@ body {
 #app {
   width: 100vw;
   height: 100vh;
+  position: relative; /* 为内部绝对定位元素提供锚点 */
+  box-sizing: border-box; /* 确保padding和border不增加额外尺寸 */
   overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* 导入字体已移动至文件顶部，满足 CSS 规范 */

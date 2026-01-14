@@ -90,9 +90,13 @@
   font-size: 32px;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
   line-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 .box_2 {
@@ -308,6 +312,7 @@
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   text-align: center;
+  pointer-events: none;
   white-space: nowrap;
   line-height: 1;
 }
@@ -335,6 +340,7 @@
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   text-align: center;
+  pointer-events: none;
   white-space: nowrap;
   line-height: 1;
 }
@@ -479,6 +485,7 @@
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   text-align: center;
+  pointer-events: none;
   white-space: nowrap;
   line-height: 1;
 }
@@ -555,6 +562,90 @@
 
 .overview-value {
   color: rgba(0, 0, 0, 0.9);
+}
+
+/* 监测状态总览样式 */
+.monitoring-status {
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.status-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.8);
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.status-content {
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.status-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.status-item.warning {
+  background: rgba(255, 193, 7, 0.15);
+  border: 2px solid rgba(255, 193, 7, 0.5);
+}
+
+.status-item.alarm {
+  background: rgba(244, 67, 54, 0.15);
+  border: 2px solid rgba(244, 67, 54, 0.5);
+}
+
+.status-item.normal {
+  background: rgba(76, 175, 80, 0.15);
+  border: 2px solid rgba(76, 175, 80, 0.5);
+}
+
+.status-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 20px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.status-count {
+  font-size: 36px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.status-item.warning .status-count {
+  color: rgba(255, 152, 0, 1);
+}
+
+.status-item.alarm .status-count {
+  color: rgba(244, 67, 54, 1);
+}
+
+.status-item.normal .status-count {
+  color: rgba(76, 175, 80, 1);
 }
 
 /* 修复：移除不合法的散落样式声明（缺少选择器） */
@@ -695,24 +786,17 @@
   background: rgba(180, 180, 180, 1);
 }
 
-/* 图片容器 */
-.image-container {
+/* 图表容器 */
+.chart-container {
   width: 100%;
+  min-height: 300px;
+  height: auto;
   flex-shrink: 0;
+  margin-bottom: 20px;
 }
 
-.image-placeholder {
-  width: 450px;
-  height: 300px;
-  background: rgba(255, 249, 189, 0.65);
-  border: 1px solid rgba(158, 157, 140, 1);
-  border-radius: 5px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 确保图片区域不会被压缩 */
-  flex-shrink: 0;
+.chart-container:last-child {
+  margin-bottom: 0;
 }
 
 /* 滑出动画 - 从下方滑出，跟随兔子 */

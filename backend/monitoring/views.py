@@ -23,6 +23,39 @@ class MonitorDataViewSet(viewsets.ModelViewSet):
     serializer_class = MonitorDataSerializer
     permission_classes = [IsMonitorOrAdminForWrite]
 
+    def get_queryset(self):
+        """重写查询集，支持筛选"""
+        queryset = MonitorData.objects.all().select_related('point', 'point__device', 'point__device__structure')
+        
+        # 获取查询参数
+        point_id = self.request.query_params.get('point')
+        status = self.request.query_params.get('status')
+        start_time = self.request.query_params.get('start_time')
+        end_time = self.request.query_params.get('end_time')
+        
+        # 按测点筛选
+        if point_id:
+            try:
+                point_id = int(point_id)
+                queryset = queryset.filter(point_id=point_id)
+            except (ValueError, TypeError):
+                pass  # 如果point_id不是有效数字，忽略该筛选条件
+        
+        # 按状态筛选
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # 按时间范围筛选
+        if start_time:
+            queryset = queryset.filter(monitor_time__gte=start_time)
+        if end_time:
+            queryset = queryset.filter(monitor_time__lte=end_time)
+        
+        # 按时间倒序排列
+        queryset = queryset.order_by("-monitor_time")
+        
+        return queryset
+
     def create(self, request, *args, **kwargs):
         """新增监测数据"""
         serializer = self.get_serializer(data=request.data)
