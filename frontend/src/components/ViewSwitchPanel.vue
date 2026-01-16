@@ -40,7 +40,6 @@ function selectView(view) {
     4: 'earthView'
   }
   emit('switch-view', viewMap[view.id] || 'frontendView')
-  console.log('切换视角:', view.name)
 }
 </script>
 

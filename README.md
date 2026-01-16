@@ -6,7 +6,8 @@
 ![Python](https://img.shields.io/badge/Python-3.10.11-blue)
 ![Django](https://img.shields.io/badge/Django-5.2.9-darkgreen)
 ![DRF](https://img.shields.io/badge/DRF-3.16.1-lightgreen)
-![Vue](https://img.shields.io/badge/Vue-3.5.25-brightgreen)
+![Vue](https://img.shields.io/badge/Vue-3.4.0-brightgreen)
+![Cesium](https://img.shields.io/badge/Cesium-1.136-blue)
 ![JWT](https://img.shields.io/badge/Auth-JWT%2FToken-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -17,27 +18,36 @@
 本项目是一个智慧水利数字孪生平台的课程设计实现，是一个**完整的全栈应用**，集成了先进的实时监测、三维可视化和数据分析能力。
 
 ### 🎯 核心功能
+
 - **✅ 三维数字孪生**：基于Cesium实现大坝三维模型和监测点空间可视化
 - **✅ 实时监测数据管理**：支持6种设备类型、多种监测指标的数据采集和管理
 - **✅ 智能预警系统**：自动判断监测数据的正常/预警/告警状态，支持阈值自定义
 - **✅ 多用户权限管理**：管理员/监测员/访客三种角色的权限隔离
-- **✅ 数据可视化统计**：监测数据图表展示、历史数据查询、统计分析
+- **✅ 数据可视化统计**：监测数据图表展示、历史数据查询、统计分析（ECharts集成）
 - **✅ 高效数据录入**：支持单条和批量导入监测数据
 - **✅ 完整REST API**：规范的后端接口设计，支持前后端分离
+- **✅ 用户注册登录**：完整的JWT认证系统，支持用户注册、登录、Token刷新
 
 ### 📊 后端新增功能（Phase 2）
-- **P0 - 单点详情增强**：point detail响应新增 `unit/current_value/current_status/relevant_thresholds/last_update_time` 5个关键字段
-- **P1 - 数据统计分析**：提供 `/api/monitoring/statistics/` 聚合接口，返回监测点总数、状态分布、设备类型分布
-- **P2 - 阈值管理API**：提供 `/api/water-structures/points/{id}/thresholds/` GET/PUT接口，支持动态调整告警阈值
+
+- **P0 - 单点详情增强** ✅：point detail响应新增 `unit/current_value/current_status/relevant_thresholds/last_update_time` 5个关键字段
+- **P1 - 数据统计分析** ✅：提供 `/api/monitoring/statistics/` 聚合接口，返回监测点总数、状态分布、设备类型分布
+- **P2 - 阈值管理API** ✅：提供 `/api/water-structures/points/{id}/thresholds/` GET/PUT接口，支持动态调整告警阈值
+- **实时数据接口** ✅：提供虚拟实时数据生成、历史数据查询、预警摘要等接口
+- **坝段管理** ✅：支持大坝坝段信息查询和汇总
+- **用户注册** ✅：新增用户注册接口，支持自动创建用户档案
 
 ### 🛠️ 技术栈
+
 | 层级 | 技术 | 版本 |
 |------|------|------|
 | **后端** | Django + DRF | 5.2.9 + 3.16.1 |
-| **前端** | Vue 3 + Vite + Cesium | 3.5.25 + 7.2.4 + 1.136 |
-| **认证** | JWT Token | djangorestframework-simplejwt 5.3.2 |
+| **前端** | Vue 3 + Vite + Cesium | 3.4.0 + 4.4.0 + 1.136 |
+| **UI框架** | Element Plus | 2.4.0 |
+| **图表库** | ECharts | 5.4.0 |
+| **认证** | JWT Token | djangorestframework-simplejwt 5.5.1 |
 | **数据库** | SQLite3/MySQL | - |
-| **HTTP客户端** | Axios | 1.13.2 |
+| **HTTP客户端** | Axios | 1.6.0 |
 | **跨域** | django-cors-headers | 4.9.0 |
 
 ---
@@ -45,6 +55,7 @@
 ## 🚀 快速开始
 
 ### 环境需求
+
 - Python 3.10+
 - Node.js 18+ (前端开发)
 - MySQL 5.7+ 或 SQLite 3
@@ -66,19 +77,17 @@ pip install -r requirements.txt
 # 4. 初始化数据库
 python manage.py migrate
 
-# 5. 创建初始数据（可选）
-python manage.py loaddata database/fixtures/initial_data.json
+# 5. 创建超级用户（可选）
+python manage.py createsuperuser
 
-# 6. 生成Admin Token用于测试
-python get_admin_token.py
-
-# 7. 启动开发服务器
+# 6. 启动开发服务器
 python manage.py runserver
 ```
 
-### 环境变量
-- 复制根目录 `.env.example` 为 `.env`，按需修改：`SECRET_KEY`、`DEBUG`、`ALLOWED_HOSTS`、`DATABASE_URL`。
-- 默认 SQLite 开发环境即可运行；生产环境请改为专用数据库并关闭 `DEBUG`。
+**默认配置**：
+- 后端服务运行在：`http://localhost:8000`
+- Django Admin：`http://localhost:8000/admin/`
+- API根路径：`http://localhost:8000/api/`
 
 ### 前端环境配置
 
@@ -86,7 +95,7 @@ python manage.py runserver
 # 1. 进入前端目录
 cd frontend
 
-# 2. 安装依赖（推荐 Node.js 20.19+ 或 22.12+）
+# 2. 安装依赖（推荐 Node.js 18+）
 npm install
 
 # 3. 启动开发服务器（默认端口3000）
@@ -105,6 +114,7 @@ npm run preview
 - 基础路径：`window.CESIUM_BASE_URL = '/Cesium-1.136/Build/Cesium/'`
 
 ### 访问地址
+
 - **前端应用**: `http://localhost:3000/`（Vue3 + Cesium 三维场景）
 - **后端API**: `http://localhost:8000/api/`
 - **Django Admin**: `http://localhost:8000/admin/`
@@ -116,11 +126,23 @@ npm run preview
 
 ### 前端对接快速指南
 
-本平台已全局启用 **JWT Token认证**，所有API（除登录/刷新外）需要携带有效的 access token。
+本平台已全局启用 **JWT Token认证**，所有API（除登录/刷新/注册外）需要携带有效的 access token。
 
-#### 1. 登录获取Token
+#### 1. 用户注册
+
 ```bash
-# 请求
+POST /api/users/register/
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "password": "password123"
+}
+```
+
+#### 2. 用户登录
+
+```bash
 POST /api/users/login/
 Content-Type: application/json
 
@@ -128,8 +150,10 @@ Content-Type: application/json
   "username": "admin",
   "password": "your_password"
 }
+```
 
-# 响应（201 Created）
+**响应**：
+```json
 {
   "success": true,
   "message": "登录成功",
@@ -151,19 +175,13 @@ Content-Type: application/json
 - 将 `tokens.refresh` 存储到 localStorage（用于刷新token）
 - 将 `user` 存储到 Vuex/Pinia（用于权限检查和UI展示）
 
-#### 2. 携带Token访问受保护接口
+#### 3. 携带Token访问受保护接口
+
+所有受保护接口都需要在请求头中加入 Authorization：
+
 ```bash
-# 所有受保护接口都需要在请求头中加入 Authorization
 GET /api/water-structures/structures/
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
-
-# 响应（200 OK）
-{
-  "count": 1,
-  "next": null,
-  "previous": null,
-  "results": [...]
-}
 ```
 
 **前端代码示例（Axios）**：
@@ -208,79 +226,22 @@ api.interceptors.response.use(
 );
 ```
 
-#### 3. 获取当前用户信息
-```bash
-# 请求
-GET /api/users/current/
-Authorization: Bearer <access_token>
-
-# 响应（200 OK）
-{
-  "success": true,
-  "message": "获取用户信息成功",
-  "data": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@example.com",
-    "role": "admin",
-    "department": "技术部",
-    "phone": "13800000000"
-  }
-}
-```
-
-**用途**：登录后拉取完整的用户信息（包括部门、电话等扩展字段）
-
 #### 4. 刷新Token
+
+当 access token 过期时（1小时后），使用 refresh token 刷新：
+
 ```bash
-# 请求（当 access token 过期时调用）
 POST /api/users/refresh/
 Content-Type: application/json
 
 {
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."  # 来自登录时的 refresh token
-}
-
-# 响应（200 OK）
-{
-  "success": true,
-  "message": "Token刷新成功",
-  "tokens": {
-    "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",     # 新的 access token（1h有效期）
-    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."     # 新的 refresh token（7d有效期）
-  }
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
 }
 ```
 
 **Token有效期**：
 - **Access Token**: 1 小时
 - **Refresh Token**: 7 天
-
-#### 5. 错误处理
-
-| 状态码 | 错误原因 | 处理方式 |
-|--------|---------|--------|
-| **401** | Token过期或无效 | 调用刷新接口或重新登录 |
-| **403** | 权限不足（如 viewer 尝试写操作） | 提示"权限不足，请联系管理员" |
-| **400** | 请求参数错误 | 检查请求体和字段格式 |
-| **500** | 服务器错误 | 重试或联系技术支持 |
-
-**前端错误处理模板**：
-```javascript
-try {
-  const response = await api.get('/api/water-structures/structures/');
-  // 成功，处理数据
-} catch (error) {
-  if (error.response?.status === 401) {
-    console.error('Token过期，请重新登录');
-    window.location.href = '/login';
-  } else if (error.response?.status === 403) {
-    console.error('权限不足');
-  } else {
-    console.error('请求失败：', error.message);
-  }
-}
-```
 
 ---
 
@@ -292,42 +253,73 @@ Smart-Water-Conservancy-Platform-Architecture-Course-Project/
 │   ├── hydro_platform/              # 项目主配置
 │   │   ├── settings.py              # 核心配置（DRF、CORS、数据库）
 │   │   ├── urls.py                  # 主路由
+│   │   ├── config.py                # 配置文件
 │   │   └── wsgi.py
 │   ├── water_structures/            # 大坝结构app
 │   │   ├── models.py                # Structure/MonitoringDevice/Point模型
 │   │   ├── serializers.py           # 序列化器（含嵌套关系）
 │   │   ├── views.py                 # ViewSet视图
-│   │   └── urls.py                  # 应用路由
+│   │   ├── urls.py                  # 应用路由
+│   │   ├── permissions.py           # 权限控制
+│   │   └── segment_manager.py       # 坝段管理
 │   ├── monitoring/                  # 监测数据app
 │   │   ├── models.py                # MonitorData模型（自动预警）
 │   │   ├── serializers.py           # 序列化器
 │   │   ├── views.py                 # ViewSet视图
-│   │   └── urls.py                  # 应用路由
+│   │   ├── urls.py                  # 应用路由
+│   │   ├── utils.py                 # 工具函数（实时数据生成）
+│   │   └── permissions.py           # 权限控制
 │   ├── users/                       # 用户管理app
 │   │   ├── models.py                # UserProfile模型
 │   │   ├── serializers.py           # 序列化器
-│   │   ├── views.py                 # ViewSet视图
-│   │   └── urls.py                  # 应用路由
+│   │   ├── views.py                 # ViewSet视图（含JWT认证）
+│   │   ├── urls.py                  # 应用路由
+│   │   └── permissions.py           # 权限控制
 │   ├── manage.py
-│   └── requirements.txt
+│   ├── requirements.txt             # Python依赖
+│   └── db.sqlite3                   # SQLite数据库（开发环境）
 ├── frontend/                         # Vue3 前端项目
-│   ├── public/Cesium-1.136/         # CesiumJS 完整库（1.136版本）
+│   ├── public/
+│   │   ├── Cesium-1.136/            # CesiumJS 完整库（1.136版本）
+│   │   └── models/                  # 3D模型文件
 │   ├── src/
-│   │   ├── App.vue                  # 根组件
-│   │   ├── main.js                  # 入口文件（Cesium Token配置）
-│   │   ├── components/
-│   │   │   └── CesiumViewer.vue     # 三维地球核心组件
-│   │   └── assets/                  # 静态资源
+│   │   ├── api/                     # API接口封装
+│   │   │   ├── auth.js              # 认证接口
+│   │   │   ├── monitoring.js        # 监测数据接口
+│   │   │   ├── users.js             # 用户接口
+│   │   │   ├── waterStructures.js   # 大坝结构接口
+│   │   │   └── request.js           # Axios配置
+│   │   ├── components/              # Vue组件
+│   │   │   ├── CesiumScene.vue       # 三维地球核心组件
+│   │   │   ├── LoginPage.vue        # 登录页面
+│   │   │   ├── RegisterPage.vue     # 注册页面
+│   │   │   ├── DataPanel.vue         # 数据面板
+│   │   │   ├── SensorPanel.vue      # 传感器面板
+│   │   │   ├── DatabaseView.vue      # 数据库视图
+│   │   │   ├── charts/               # 图表组件（ECharts）
+│   │   │   └── ...
+│   │   ├── views/                   # 页面视图
+│   │   │   ├── MainDashboard.vue    # 主仪表盘
+│   │   │   ├── SceneView.vue          # 三维场景视图
+│   │   │   └── DatabaseViewPage.vue  # 数据库视图页面
+│   │   ├── store/                   # 状态管理
+│   │   │   └── auth.js               # 认证状态
+│   │   ├── utils/                   # 工具函数
+│   │   │   ├── auth.js               # 认证工具
+│   │   │   └── sensorMapping.js     # 传感器映射
+│   │   ├── App.vue                   # 根组件
+│   │   └── main.js                   # 入口文件（Cesium Token配置）
 │   ├── index.html                   # 主页面
 │   ├── vite.config.js               # Vite配置（端口3000、CORS、别名）
-│   ├── package.json                 # 依赖管理（Vue3/Axios/Vite）
-│   └── README.md                    # 前端说明文档
-├── .gitignore                        # Git忽略规则（pyc/sqlite/env/node_modules）
-├── .env.example                      # 环境变量模板
-├── API接口文档.md                    # 完整的API文档（1287行）
+│   └── package.json                 # 依赖管理（Vue3/Axios/Vite）
+├── .gitignore                        # Git忽略规则
+├── API接口文档.md                    # 完整的API文档（1800+行）
+├── DATABASE_DESIGN.md                # 数据库设计文档
 ├── README.md                         # 本文件
 └── 课设材料/                         # 课程设计相关材料（RVT模型等）
 ```
+
+---
 
 ## 📋 权限系统
 
@@ -367,50 +359,42 @@ Smart-Water-Conservancy-Platform-Architecture-Course-Project/
 - **GET** `/api/users/user-profiles/`：所有**认证用户**可读（查看其他用户档案）
 - **POST/PUT/DELETE**：仅 **admin** 可操作
 
-### 权限检查示例
+---
 
-**请求头缺少Token（未认证）**：
-```
-GET /api/water-structures/structures/
-# 响应 401 Unauthorized
-{
-  "detail": "Authentication credentials were not provided."
-}
-```
+## 🔌 API快览
 
-**Token有效但权限不足（如viewer尝试新增）**：
-```
-POST /api/water-structures/structures/
-Authorization: Bearer <viewer_token>
-{
-  "name": "新大坝",
-  ...
-}
-# 响应 403 Forbidden
-{
-  "detail": "You do not have permission to perform this action."
-}
-```
+**完整API文档**：见 [API接口文档.md](API接口文档.md)
 
-**Token有效且权限足够（如monitor新增监测数据）**：
 ```
-POST /api/monitoring/monitor-datas/
-Authorization: Bearer <monitor_token>
-{
-  "point": 1,
-  "monitor_time": "2026-01-06T10:00:00Z",
-  "inverted_plumb_up_down": 2.5,
-  ...
-}
-# 响应 201 Created
-{
-  "success": true,
-  "message": "监测数据创建成功",
-  "data": { ... }
-}
+认证接口      : /api/users/register/            (用户注册)
+               : /api/users/login/              (登录获取Token)
+               : /api/users/refresh/            (刷新Token)
+               : /api/users/current/            (获取当前用户)
+大坝信息      : /api/water-structures/structures/
+               : /api/water-structures/structures/{id}/segments/ (坝段列表)
+               : /api/water-structures/structures/{id}/segments/{segment_id}/ (坝段详情)
+监测设备      : /api/water-structures/devices/
+监测点        : /api/water-structures/points/
+               : /api/water-structures/points/with_data/ (有数据的测点)
+               : /api/water-structures/points/{id}/thresholds/ (阈值管理)
+监测数据      : /api/monitoring/data/ (含批量导入)
+               : /api/monitoring/data/latest_data/ (最新数据)
+               : /api/monitoring/data/alert_summary/ (预警汇总)
+               : /api/monitoring/data/history/ (历史数据)
+               : /api/monitoring/latest/ (实时数据)
+               : /api/monitoring/history/{point_id}/ (测点历史)
+               : /api/monitoring/alerts/ (预警摘要)
+               : /api/monitoring/statistics/ (数据统计)
+               : /api/monitoring/health/ (健康检查)
+用户管理      : /api/users/user-profiles/
+
+每个资源支持：GET(查), POST(增), PUT(改), DELETE(删)
+总计40+个接口 = 认证4 + 大坝7 + 设备5 + 测点7 + 数据13 + 用户5
 ```
 
 ---
+
+## 📊 数据模型
 
 ### 1. Structure（大坝信息）
 - **字段**：名称、Cesium三维坐标、建成时间、工程等级等（12字段）
@@ -438,25 +422,7 @@ Authorization: Bearer <monitor_token>
 - **字段**：关联Django用户、角色、电话、部门
 - **用途**：权限隔离 + 用户追踪
 
----
-
-## 🔌 API快览
-
-**完整API文档**：见 [API接口文档.md](API接口文档.md)
-
-```
-认证接口      : /api/users/login/              (登录获取Token)
-               : /api/users/refresh/            (刷新Token)
-               : /api/users/current/            (获取当前用户)
-大坝信息      : /api/water-structures/structures/
-监测设备      : /api/water-structures/devices/
-监测点        : /api/water-structures/points/
-监测数据      : /api/monitoring/monitor-datas/ (含批量导入 + 三个实时接口)
-用户管理      : /api/users/user-profiles/
-
-每个资源支持：GET(查), POST(增), PUT(改), DELETE(删)
-总计29个接口 = 认证3 + 大坝5 + 设备5 + 测点5 + 数据5 + 批量1 + 实时3 + 用户2
-```
+详细数据库设计见 [DATABASE_DESIGN.md](DATABASE_DESIGN.md)
 
 ---
 
@@ -475,6 +441,7 @@ Authorization: Bearer <monitor_token>
 **2. JWT 认证系统** ⭐
 - ✅ djangorestframework-simplejwt 集成
 - ✅ 登录接口 (POST /api/users/login/)：返回 access + refresh token
+- ✅ 注册接口 (POST /api/users/register/)：用户注册并自动登录
 - ✅ 刷新接口 (POST /api/users/refresh/)：延期 access token
 - ✅ 当前用户接口 (GET /api/users/current/)：获取登录用户信息
 - ✅ 全局Token认证：所有受保护接口需要 Authorization 头
@@ -493,14 +460,13 @@ Authorization: Bearer <monitor_token>
 - ✅ **MonitorData** (数据)：6种指标 + 自动预警 + 字段验证
 - ✅ **UserProfile** (用户)：3种角色权限 + 部门电话信息
 
-**5. REST API (29个接口)** ⭐
-- ✅ 3个认证接口 (登录/刷新/当前用户)
-- ✅ 5个大坝接口 (GET列表/详情、POST创建、PUT更新、DELETE删除)
-- ✅ 5个设备接口 (同上)
-- ✅ 5个测点接口 (同上)
-- ✅ 5个监测数据接口 + 1个批量导入 (POST batch/)
-- ✅ 3个实时查询接口：latest_data / alert_summary / history
-- ✅ 2个用户接口 (当前用户、用户列表)
+**5. REST API (40+个接口)** ⭐
+- ✅ 4个认证接口 (注册/登录/刷新/当前用户)
+- ✅ 7个大坝接口 (CRUD + 坝段列表/详情)
+- ✅ 5个设备接口 (CRUD + 列表)
+- ✅ 7个测点接口 (CRUD + 有数据筛选 + 阈值管理)
+- ✅ 13个监测数据接口 (CRUD + 批量导入 + 最新数据 + 预警汇总 + 历史数据 + 实时数据 + 预警摘要 + 统计 + 健康检查)
+- ✅ 5个用户接口 (CRUD + 当前用户)
 - ✅ 分页、过滤、排序支持
 
 **6. 数据验证** ⭐
@@ -518,8 +484,8 @@ Authorization: Bearer <monitor_token>
 - ✅ 字段可读性优化
 - ✅ 数据快速录入界面
 
-**8. 完整API文档** (1000+行)
-- ✅ 所有接口详细说明（29个）
+**8. 完整API文档** (1800+行)
+- ✅ 所有接口详细说明（40+个）
 - ✅ 字段级说明表格（类型、必填、含义）
 - ✅ 请求/响应示例 + JavaScript/Python示例
 - ✅ JWT认证指南及前端集成示例
@@ -527,12 +493,57 @@ Authorization: Bearer <monitor_token>
 - ✅ 数据校验规则详细说明
 - ✅ curl命令行用例
 
-**9. 版本管理**
-- ✅ Git分支管理（后端分支 + merge到main）
-- ✅ 冲突解决
-- ✅ .gitignore优化
+### 2026-01-07 ~ 2026-01-16（前端开发）✅ 前端完成
+
+#### 完成的工作
+
+**1. 前端项目搭建**
+- ✅ Vue3 + Vite 项目初始化
+- ✅ Element Plus UI框架集成
+- ✅ ECharts 图表库集成
+- ✅ Axios HTTP客户端配置
+- ✅ 路由和状态管理设置
+
+**2. Cesium三维可视化** ⭐
+- ✅ Cesium 1.136 完整集成
+- ✅ 大坝3D模型加载（GLB/GLTF格式）
+- ✅ 监测点三维标注（Entity + Label）
+- ✅ 相机控制和场景交互
+- ✅ 实时数据更新和可视化
+
+**3. 用户认证界面**
+- ✅ 登录页面（LoginPage.vue）
+- ✅ 注册页面（RegisterPage.vue）
+- ✅ JWT Token自动管理
+- ✅ 权限路由守卫
+
+**4. 数据可视化** ⭐
+- ✅ 主仪表盘（MainDashboard.vue）
+- ✅ 数据面板（DataPanel.vue）
+- ✅ 传感器面板（SensorPanel.vue）
+- ✅ 数据库视图（DatabaseView.vue）
+- ✅ 多种图表组件（ECharts）：
+  - 水位趋势图
+  - 位移对比图
+  - 沉降面积图
+  - 上下游水位对比
+  - 等等
+
+**5. 三维场景视图**
+- ✅ 场景视图（SceneView.vue）
+- ✅ Cesium场景组件（CesiumScene.vue）
+- ✅ 监测点交互和详情展示
+- ✅ 实时数据展示
+
+**6. API接口封装**
+- ✅ 认证接口（auth.js）
+- ✅ 监测数据接口（monitoring.js）
+- ✅ 用户接口（users.js）
+- ✅ 大坝结构接口（waterStructures.js）
+- ✅ Axios请求拦截器配置（request.js）
 
 #### 关键技术亮点
+
 | 点 | 实现 |
 |----|------|
 | **JWT认证** | simplejwt + RefreshToken，access(1h)/refresh(7d) 双token方案 |
@@ -542,110 +553,9 @@ Authorization: Bearer <monitor_token>
 | **预警系统** | MonitorData.save()中自动判断，支持6种指标的阈值对比 |
 | **数据验证** | 字段级validators + 全局validate() + unique_together约束 |
 | **实时查询** | latest_data(单点最新) / alert_summary(预警统计) / history(时间序列) |
+| **三维可视化** | Cesium集成，支持3D模型加载和空间标注 |
+| **数据可视化** | ECharts集成，多种图表类型支持 |
 | **模块化设计** | 3个app独立开发，便于团队合作 |
-
-#### 解决的问题
-| 问题 | 解决方案 |
-|------|--------|
-| django-admin PATH错误 | 添加Scripts目录到系统PATH |
-| Git merge冲突 | 删除未追踪文件，重新migrate |
-| Cesium坐标显示问题 | 改为明确字段列表而非fields="__all__" |
-| 模型循环导入 | 分离models + 用related_name管理 |
-
-#### 当前统计
-```
-后端完成度: ████████████████████ 100%
-
-接口统计：
-├─ 认证接口          : 3 个   (login / refresh / current)
-├─ 大坝接口          : 5 个   (CRUD + 列表)
-├─ 设备接口          : 5 个   (CRUD + 列表)
-├─ 测点接口          : 5 个   (CRUD + 列表)
-├─ 监测数据接口      : 5 个   (CRUD + 列表)
-├─ 批量导入接口      : 1 个   (batch)
-├─ 实时查询接口      : 3 个   (latest_data / alert_summary / history)
-└─ 用户接口          : 2 个   (profiles / current)
-────────────────────────────
-   共计            : 29 个 REST API
-
-文件生成：
-├─ models.py (3个文件)     : ~20 KB (含UserProfile)
-├─ serializers.py (3个)    : ~15 KB (含字段验证)
-├─ views.py (3个)          : ~10 KB (含实时查询 + 权限检查)
-├─ urls.py (4个)           : ~2.5 KB
-├─ permissions.py          : ~1.5 KB (权限类)
-├─ settings.py             : ~3 KB (JWT配置)
-├─ migrations/             : ~25 KB (10+个迁移文件)
-├─ API接口文档.md          : ~80 KB (详细说明)
-├─ README.md               : ~60 KB (完整指南)
-└─ Admin配置               : 完全中文化
-
-认证系统：
-├─ JWT Token验证          : ✅ 全局启用
-├─ Token有效期            : access(1h) / refresh(7d)
-├─ 用户档案自动创建       : ✅ 登录时get_or_create
-├─ 三角色权限控制         : admin / monitor / viewer
-└─ 权限检查               : Permission classes + 403响应
-
-数据库：
-├─ Structure (示例大坝)    : 1条
-├─ MonitoringDevice (设备) : 可按需创建
-├─ Point (测点)            : 可按需创建
-├─ User (用户)             : 2+条 (admin + 测试用户)
-├─ UserProfile (用户档案)  : 关联User
-└─ MonitorData (监测数据)  : 可按需导入
-
-部署就绪：
-├─ CORS配置              : ✅ Django-cors-headers
-├─ 数据库迁移            : ✅ SQLite3就绪
-├─ Django Admin          : ✅ 数据管理界面
-├─ API可视化             : ✅ DRF BrowsableAPIRenderer
-└─ 生产部署指南          : 见API文档第9章
-```
-
-#### 下一步计划
-- [ ] 前端项目初始化 (Vue3 + Vite + TypeScript)
-- [ ] Cesium集成 (三维场景引擎)
-- [ ] 大坝3D模型加载 (GLB/GLTF格式)
-- [ ] 监测点可视化 (Entity + Label)
-- [ ] 数据面板 (实时数值 + 时间序列图)
-- [ ] 表单交互 (新增/编辑监测数据)
-- [ ] 权限展示 (3种角色演示)
-- [ ] 批量导入 (CSV解析)
-- [ ] 答辩演示脚本
-
-#### 时间统计
-- **学习**：2h (Django/DRF基础)
-- **编码**：3h (模型+序列化器+视图+路由)
-- **测试+文档**：1h
-
----
-
-### 2026-01-07（规划）
-
-#### 前端初期（Week 1-2）
-- [ ] Vue3项目创建 (npm create vite)
-- [ ] 路由框架搭建 (Vue Router)
-- [ ] UI组件库集成 (Element Plus)
-- [ ] Cesium基础集成 (viewer容器)
-
-#### Cesium开发（Week 2-3）
-- [ ] 大坝3D模型加载
-- [ ] 监测点定位 (cesium_world_coords)
-- [ ] 点击交互事件
-- [ ] 实时数据更新
-
-#### 数据面板（Week 3-4）
-- [ ] API集成 (Axios)
-- [ ] 仪表盘布局 (当前值 + 状态)
-- [ ] 时间序列图 (ECharts)
-- [ ] 数据表格过滤
-
-#### 完善和答辩（Week 4-5）
-- [ ] 权限切换演示
-- [ ] 批量导入功能
-- [ ] 性能优化
-- [ ] 答辩脚本准备
 
 ---
 
@@ -679,19 +589,35 @@ Authorization: Bearer <monitor_token>
 - ✅ 构建产物优化（Rollup）
 - ✅ 配置简洁直观
 
+### 为什么选择Element Plus？
+- ✅ Vue3官方推荐的UI框架
+- ✅ 组件丰富，开箱即用
+- ✅ 文档完善，中文支持好
+- ✅ 样式美观，易于定制
+
+### 为什么选择ECharts？
+- ✅ 功能强大，图表类型丰富
+- ✅ 性能优秀，支持大数据量
+- ✅ 文档完善，示例丰富
+- ✅ 与Vue3集成简单
+
 ---
 
 ## 📝 开发规范
 
 ### 命名约定
+
 ```
 模型类      : PascalCase  (Structure, MonitoringDevice)
 数据库字段  : snake_case  (cesium_center_x, monitor_time)
 API路由    : kebab-case  (/monitor-datas/, /user-profiles/)
 Python函数  : snake_case  (get_cesium_coords, save_monitor_data)
+Vue组件    : PascalCase  (CesiumScene.vue, DataPanel.vue)
+JavaScript变量: camelCase (accessToken, userInfo)
 ```
 
 ### 代码注释示例
+
 ```python
 class MonitorData(models.Model):
     """
@@ -711,6 +637,7 @@ class MonitorData(models.Model):
 ## 🧪 测试指南
 
 ### 快速测试
+
 ```bash
 # 1. 访问DRF可视化界面（推荐新手）
 http://localhost:8000/api/
@@ -719,8 +646,9 @@ http://localhost:8000/api/
 curl http://localhost:8000/api/water-structures/structures/
 
 # 3. 创建监测数据
-curl -X POST http://localhost:8000/api/monitoring/monitor-datas/ \
+curl -X POST http://localhost:8000/api/monitoring/data/ \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"point":1,"monitor_time":"2026-01-06T10:00:00Z","inverted_plumb_up_down":2.5}'
 ```
 
@@ -729,6 +657,11 @@ curl -X POST http://localhost:8000/api/monitoring/monitor-datas/ \
 - 设置环境变量 `BASE_URL = http://localhost:8000/api`
 - 逐个测试各接口
 
+### 前端测试
+- 启动前端开发服务器：`npm run dev`
+- 访问 `http://localhost:3000`
+- 使用测试账号登录测试各项功能
+
 ---
 
 ## 📋 课设材料清单
@@ -736,24 +669,17 @@ curl -X POST http://localhost:8000/api/monitoring/monitor-datas/ \
 ```
 ✅ 已完成：
 ├─ 需求分析文档 (README.md)
-├─ 数据库ER图 (模型设计)
-├─ API接口文档 (50KB详细文档)
-├─ 源代码 (后端完整实现)
+├─ 数据库设计文档 (DATABASE_DESIGN.md)
+├─ API接口文档 (API接口文档.md, 1800+行)
+├─ 源代码 (后端完整实现 + 前端完整实现)
 ├─ 工作日志 (本README)
-└─ 项目中间检查材料
+└─ 项目演示材料
 
-🔄 进行中：
-├─ 前端三维场景实现（CesiumViewer已就绪）
-├─ JWT前后端联调
-├─ 监测数据可视化组件
+🔄 可选完善：
+├─ 单元测试用例
+├─ 性能优化
+├─ 批量导入功能完善
 └─ 答辩PPT准备
-
-📝 待开发功能：
-├─ 登录/权限管理界面
-├─ 大坝模型加载与定位
-├─ 监测点三维标注
-├─ 实时数据图表（ECharts集成）
-└─ 响应式布局适配
 ```
 
 ---
@@ -771,6 +697,8 @@ curl -X POST http://localhost:8000/api/monitoring/monitor-datas/ \
 | **权限管理** | ⭐⭐⭐ | RBAC、粒度控制 |
 | **Vue3 + Vite** | ⭐⭐⭐ | Composition API、组件化 |
 | **Cesium三维GIS** | ⭐⭐⭐ | 地球渲染、3D Tiles、坐标变换 |
+| **ECharts数据可视化** | ⭐⭐⭐ | 图表设计、数据展示 |
+| **Element Plus** | ⭐⭐⭐ | UI组件使用、样式定制 |
 | **Axios HTTP** | ⭐⭐⭐ | 拦截器、异步请求 |
 | **Git工作流** | ⭐⭐⭐ | 分支管理、冲突解决 |
 | **系统设计** | ⭐⭐⭐⭐ | 从零到一的思维 |
@@ -784,16 +712,14 @@ curl -X POST http://localhost:8000/api/monitoring/monitor-datas/ \
 - [Django REST Framework](https://www.django-rest-framework.org/)
 - [Cesium.js文档](https://cesium.com/docs/)
 - [Vue3官网](https://vuejs.org/)
+- [Element Plus文档](https://element-plus.org/)
+- [ECharts文档](https://echarts.apache.org/)
 
 ### 推荐教程
 - DRF序列化器深度讲解
 - Cesium Entity与坐标系统
 - Vue3 Composition API
-
-### 相关项目参考
-- Django示例项目
-- Cesium官方demo
-- Vue3 + Cesium集成示例
+- ECharts图表设计
 
 ---
 
@@ -802,14 +728,17 @@ curl -X POST http://localhost:8000/api/monitoring/monitor-datas/ \
 **Q: 后端怎样支持生产环境？**  
 A: 需要配置PostgreSQL数据库、Gunicorn WSGI服务器、Nginx反向代理、Redis缓存等。
 
-**Q: 权限控制何时实现？**  
-A: 当前为设计阶段，代码暂未实现。可在前端通过role字段手动控制按钮显示，后端实现留作进阶优化。
+**Q: 权限控制如何实现？**  
+A: 后端使用Custom PermissionClass实现RBAC，前端通过role字段控制按钮显示和路由守卫。
 
 **Q: 前端怎样调用后端API？**  
-A: 使用Axios库，详见API文档第6.5章的JavaScript示例。
+A: 使用Axios库，详见API文档中的JavaScript示例。已封装在`src/api/`目录下。
 
 **Q: 如何进行性能优化？**  
-A: 建立数据库索引、使用字段过滤、分页查询、缓存热数据等。详见API文档第8章。
+A: 建立数据库索引、使用字段过滤、分页查询、缓存热数据、前端虚拟滚动等。
+
+**Q: Cesium模型如何加载？**  
+A: 将GLB/GLTF模型文件放在`public/models/`目录下，在CesiumScene组件中使用`viewer.entities.add()`加载。
 
 ---
 
@@ -817,13 +746,12 @@ A: 建立数据库索引、使用字段过滤、分页查询、缓存热数据�
 
 感谢：
 - Django社区提供的优秀框架
+- Cesium团队提供的强大三维引擎
+- Vue.js团队提供的现代化前端框架
+- Element Plus团队提供的UI组件库
+- ECharts团队提供的数据可视化库
 - 教授的课程指导和作业设计
 - Stack Overflow的技术支持
-
+-各大ai
 ---
-
-**项目状态**: 🔄 开发中（后端✅ / 前端🔄）  
-**最后更新**: 2026-01-06  
-**预计完成**: 2026-01-底  
-**总工时**: ~60小时 (规划)
 

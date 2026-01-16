@@ -27,7 +27,6 @@ let refreshInterval = null
 
 // 加载水位数据
 async function loadWaterLevelData() {
-  console.log('开始生成水位模拟数据')
   try {
     loading.value = true
     error.value = null
@@ -75,9 +74,6 @@ async function loadWaterLevelData() {
     // 只保留最近100个数据点
     upstreamData.value = upstreamList.slice(-100)
     downstreamData.value = downstreamList.slice(-100)
-
-    console.log('生成的上游水位数据:', upstreamData.value)
-    console.log('生成的下游水位数据:', downstreamData.value)
 
     // 更新图表
     updateChart()

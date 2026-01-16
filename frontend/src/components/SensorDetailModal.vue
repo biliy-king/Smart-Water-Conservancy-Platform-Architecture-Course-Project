@@ -21,8 +21,8 @@
         <div class="box_1 flex-row">
           <span class="text_6">状态：</span>
           <div class="section_2 flex-col justify-between">
-            <div class="box_2" :class="{ active: currentStatus === 'normal' }"></div>
-            <div class="box_3" :class="{ active: currentStatus === 'alarm' || currentStatus === 'abnormal' || currentStatus === 'warning' }"></div>
+            <div class="box_2" :class="{ active: !isDeviceFaulty }"></div>
+            <div class="box_3" :class="{ active: isDeviceFaulty }"></div>
           </div>
           <div class="text-group_1 flex-col justify-between">
             <span class="text_7">正常</span>
@@ -33,7 +33,18 @@
         <!-- 虚拟实时数据表格 -->
         <div class="table-container">
           <div class="table-title">实时监测数据</div>
-          <div v-if="tableLoading" class="table-loading">加载中...</div>
+          <!-- 设备异常提示 -->
+          <div v-if="isDeviceFaulty" class="device-faulty-message">
+            <div class="faulty-icon">⚠️</div>
+            <div class="faulty-content">
+              <div class="faulty-title">设备异常</div>
+              <div class="faulty-text">
+                <p v-if="deviceStatus === 'stopped'">该仪器已停用，无法获取监测数据。</p>
+                <p v-else-if="deviceStatus === 'faulty'">该仪器出现故障，无法正常工作。请及时联系维修人员处理。</p>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="tableLoading" class="table-loading">加载中...</div>
           <div v-else-if="tableError" class="table-error">{{ tableError }}</div>
           <el-table 
             v-else
@@ -141,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { getPoint } from '@/api/waterStructures'
 import { getLatestDataByPoint } from '@/api/monitoring'
 
@@ -166,6 +177,16 @@ const pointInfo = ref({})
 const loading = ref(false)
 const error = ref(null)
 const currentStatus = ref(props.status)
+
+// 计算设备运行状态
+const deviceStatus = computed(() => {
+  return pointInfo.value.device_info?.device_status || 'running'
+})
+
+// 判断设备是否异常（停用或故障）
+const isDeviceFaulty = computed(() => {
+  return deviceStatus.value === 'stopped' || deviceStatus.value === 'faulty'
+})
 
 // 实时数据表格相关
 const realtimeTableData = ref([])
@@ -247,7 +268,6 @@ async function loadPointInfo() {
   const pointId = typeof props.pointId === 'number' ? props.pointId : parseInt(props.pointId)
   
   if (!pointId || isNaN(pointId)) {
-    console.warn('未提供有效的测点ID（数字），无法加载详细信息', props.pointId)
     error.value = '未找到测点ID，无法加载详细信息'
     return
   }
@@ -256,7 +276,6 @@ async function loadPointInfo() {
     loading.value = true
     error.value = null
     
-    console.log('正在加载测点信息，ID:', pointId)
     const response = await getPoint(pointId)
     pointInfo.value = response.data
     
@@ -264,8 +283,6 @@ async function loadPointInfo() {
     if (pointInfo.value.current_status) {
       currentStatus.value = pointInfo.value.current_status
     }
-    
-    console.log('测点信息加载成功:', pointInfo.value)
   } catch (err) {
     console.error('加载测点信息失败:', err)
     if (err.response?.status === 404) {
@@ -280,10 +297,15 @@ async function loadPointInfo() {
 
 // 获取虚拟实时数据
 async function fetchRealtimeData() {
+  // 如果设备异常，不加载实时数据
+  if (isDeviceFaulty.value) {
+    realtimeTableData.value = []
+    return
+  }
+  
   const pointId = typeof props.pointId === 'number' ? props.pointId : parseInt(props.pointId)
   
   if (!pointId || isNaN(pointId)) {
-    console.warn('未提供有效的测点ID，无法加载实时数据', props.pointId)
     realtimeTableData.value = []
     return
   }
@@ -292,10 +314,7 @@ async function fetchRealtimeData() {
     tableLoading.value = true
     tableError.value = null
     
-    console.log('正在获取实时数据，测点ID:', pointId)
     const response = await getLatestDataByPoint(pointId)
-    
-    console.log('实时数据接口响应:', response.data)
     
     // 处理实时数据
     let data = null
@@ -396,8 +415,6 @@ async function fetchRealtimeData() {
         }
       }
     }
-    
-    console.log('实时数据加载成功，表格数据:', realtimeTableData.value)
   } catch (err) {
     console.error('加载实时数据失败:', err)
     tableError.value = '加载实时数据失败: ' + (err.message || '未知错误')
@@ -413,11 +430,15 @@ function startAutoRefresh() {
     clearInterval(refreshTimer)
   }
   
+  // 如果设备异常，不启动定时刷新
+  if (isDeviceFaulty.value) {
+    return
+  }
+  
   // 如果有 pointId，每 5 秒刷新一次实时数据
   const pointId = typeof props.pointId === 'number' ? props.pointId : parseInt(props.pointId)
   if (pointId && !isNaN(pointId)) {
     refreshTimer = setInterval(() => {
-      console.log('定时刷新实时数据...')
       fetchRealtimeData()
     }, 5000) // 5秒刷新一次
   }
@@ -706,6 +727,50 @@ onUnmounted(() => {
 
 .table-error {
   color: rgba(255, 82, 39, 1);
+}
+
+/* 设备故障提示样式 */
+.device-faulty-message {
+  display: flex;
+  align-items: center;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #fff1f0 0%, #ffe7e5 100%);
+  border: 2px solid #f5222d;
+  border-radius: 10px;
+  margin: 20px 0;
+}
+
+.faulty-icon {
+  font-size: 48px;
+  margin-right: 20px;
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.faulty-content {
+  flex: 1;
+}
+
+.faulty-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #f5222d;
+  margin-bottom: 10px;
+}
+
+.faulty-text {
+  font-size: 18px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.faulty-text p {
+  margin: 5px 0;
 }
 
 /* Flexbox utility classes */

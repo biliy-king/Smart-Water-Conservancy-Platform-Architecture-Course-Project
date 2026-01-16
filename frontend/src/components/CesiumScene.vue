@@ -232,449 +232,6 @@ let pendingHighlightNames = null; // 存储待高亮的节点名称（用于延�
 const highlightColor = Cesium.Color.ORANGE.withAlpha(0.85);
 const normalColor = Cesium.Color.WHITE;
 
-// ====== 蒙版热区系统配置 ======
-// 蒙版模式配置
-const maskConfig = {
-  enabled: false, // 是否启用蒙版模式
-  debugMode: false, // 调试模式：显示热区边界
-  totalSegments: 11, // 总段数：0-10，共11段
-  maskEntities: [], // 存储所有蒙版热区实体
-  segmentBounds: [] // 每个坝段的边界定义（世界坐标，格式：[[lon, lat, height], ...]）
-};
-
-// ====== 坝段坐标配置 ======
-// 在这里填写你收集到的11个坝段的坐标
-// 格式：每个坝段是一个数组，包含该坝段多边形的所有顶点坐标
-// 坐标格式：[经度, 纬度, 高度(米)]
-const DAM_SEGMENT_BOUNDS = [
-  // 坝段 1 - 在这里填写你收集的第一个坝段的坐标
-[
-  [
-    111.17001236917547,
-    30.779504266712912,
-    369.2842459462626
-  ],
-  [
-    111.17021169945275,
-    30.78017845134495,
-    378.62551687288163
-  ],
-  [
-    111.17030766173623,
-    30.78032666977605,
-    374.6889016357971
-  ],
-  [
-    111.16997510054627,
-    30.779453716632243,
-    373.2496895349435
-  ],
-  [
-    111.17107670576118,
-    30.77913685653775,
-    272.77259955700805
-  ],
-  [
-    111.17103781996423,
-    30.779812178468518,
-    247.1659558147235
-  ],
-  [
-    111.17326423398401,
-    30.781588362311552,
-    328.2081467023148
-  ],
-  [
-    111.17335909124736,
-    30.780397140032136,
-    257.4144287410021
-  ]
-],
-  
-  // 坝段 2 - 在这里填写你收集的第二个坝段的坐标
-[
-  [
-    111.1700880337252,
-    30.779459908304045,
-    352.0670333694621
-  ],
-  [
-    111.17000152377128,
-    30.778855854259593,
-    327.4333049102834
-  ],
-  [
-    111.17051670441161,
-    30.778728291970392,
-    314.293423076755
-  ],
-  [
-    111.1708086125266,
-    30.779248409765895,
-    244.1703121457487
-  ],
-  [
-    111.17061982486165,
-    30.779418315571437,
-    279.03353950973093
-  ],
-  [
-    111.17031219918772,
-    30.778798182157846,
-    315.4071786660563
-  ],
-  [
-    111.17265368618297,
-    30.779266715092504,
-    145.7037893001117
-  ],
-  [
-    111.17269171229114,
-    30.780232253367206,
-    226.74072026462386
-  ]
-],
-  
-  // 坝段 3 - 在这里填写你收集的第三个坝段的坐标
-[
-  [
-    111.17044018373564,
-    30.777533218034577,
-    188.8303692683544
-  ],
-  [
-    111.1698678874437,
-    30.777480398186277,
-    264.47172724013967
-  ],
-  [
-    111.16956956570121,
-    30.778113000673102,
-    482.88682061400317
-  ],
-  [
-    111.16983767669645,
-    30.778718988461918,
-    482.9364243171147
-  ],
-  [
-    111.16941383578441,
-    30.77815991003847,
-    483.7106876676841
-  ],
-  [
-    111.1700563780006,
-    30.778680493239367,
-    439.35768996365886
-  ],
-  [
-    111.17197367631564,
-    30.77883853626387,
-    194.65156679065828
-  ],
-  [
-    111.17220746581701,
-    30.77903202680515,
-    178.68359811898694
-  ]
-],
-// 坝段 4 - 在这里填写你收集的第四个坝段的坐标
-[
-  [
-    111.17032070514001,
-    30.77738253273332,
-    192.90587252387797
-  ],
-  [
-    111.16982974720024,
-    30.77796233065352,
-    343.56845425028456
-  ],
-  [
-    111.16952685472174,
-    30.77755434623121,
-    362.73855364978243
-  ],
-  [
-    111.16956829667085,
-    30.77715916307652,
-    315.4284660561508
-  ],
-  [
-    111.16934143023154,
-    30.7779598762176,
-    483.6555673017373
-  ],
-  [
-    111.16960296270734,
-    30.778487194774865,
-    483.54392957418605
-  ],
-  [
-    111.16990654086646,
-    30.779223115227325,
-    483.7007490825225
-  ],
-  [
-    111.1702702126877,
-    30.7799337357574,
-    483.4463830042477
-  ]
-],
-// 坝段 5 - 在这里填写你收集的第五个坝段的坐标
-[
-  [
-    111.17032070514001,
-    30.77738253273332,
-    192.90587252387797
-  ],
-  [
-    111.16982974720024,
-    30.77796233065352,
-    343.56845425028456
-  ],
-  [
-    111.16952685472174,
-    30.77755434623121,
-    362.73855364978243
-  ],
-  [
-    111.16956829667085,
-    30.77715916307652,
-    315.4284660561508
-  ],
-  [
-    111.16934143023154,
-    30.7779598762176,
-    483.6555673017373
-  ],
-  [
-    111.16960296270734,
-    30.778487194774865,
-    483.54392957418605
-  ],
-  [
-    111.16990654086646,
-    30.779223115227325,
-    483.7007490825225
-  ],
-  [
-    111.1702702126877,
-    30.7799337357574,
-    483.4463830042477
-  ]
-],
-// 坝段 6 - 在这里填写你收集的第六个坝段的坐标
-[
-  [
-    111.16932111433263,
-    30.780201704569894,
-    360.66062318036234
-  ],
-  [
-    111.16909823171807,
-    30.77967830153175,
-    380.99005478974715
-  ],
-  [
-    111.16972491184653,
-    30.779289081122343,
-    484.8501838979363
-  ],
-  [
-    111.1696030953395,
-    30.77988223907017,
-    512.2697979207707
-  ],
-  [
-    111.16988494600056,
-    30.779340120655696,
-    484.16949766013727
-  ],
-  [
-    111.16996004109953,
-    30.779842062067768,
-    517.3236981655247
-  ],
-  [
-    111.16856989533835,
-    30.777706081683984,
-    486.94254330295945
-  ],
-  [
-    111.16866219171943,
-    30.776937787848997,
-    484.8786391241878
-  ]
-],
-// 坝段 7 - 在这里填写你收集的第七个坝段的坐标
-[
-  [
-    111.16740532431214,
-    30.774851733622942,
-    442.73540749784894
-  ],
-  [
-    111.16082712309276,
-    30.77883261882431,
-    39.20477347798067
-  ],
-  [
-    111.16091989788193,
-    30.77764999298904,
-    74.3738029304647
-  ],
-  [
-    111.16714432577328,
-    30.77445015881626,
-    486.68793226295696
-  ],
-  [
-    111.16234665464455,
-    30.780366589326196,
-    39.32949365324676
-  ],
-  [
-    111.16237146437906,
-    30.78160424859138,
-    39.277224818972016
-  ],
-  [
-    111.16876522030185,
-    30.78113350537757,
-    172.51055533302417
-  ],
-  [
-    111.16857329272713,
-    30.781375611697925,
-    201.47708055560102
-  ]
-],
-// 坝段 8 - 在这里填写你收集的第八个坝段的坐标
-[
-  [
-    111.16621721733165,
-    30.772200989534177,
-    481.8086213768657
-  ],
-  [
-    111.16674090046631,
-    30.773284704469933,
-    430.3096740728344
-  ],
-  [
-    111.16396491104534,
-    30.77512031426115,
-    313.1883907430809
-  ],
-  [
-    111.16439573695591,
-    30.775328246878555,
-    287.3817375562986
-  ],
-  [
-    111.16417523601328,
-    30.775404712787743,
-    291.40039984468035
-  ],
-  [
-    111.16413160065326,
-    30.77459073600922,
-    335.6191731683368
-  ],
-  [
-    111.16795281329642,
-    30.77848704699561,
-    39.203591529355386
-  ],
-  [
-    111.1684101331598,
-    30.778736034749972,
-    160.96585643970278
-  ]
-],
-// 坝段 9 - 在这里填写你收集的第九个坝段的坐标
-[
-  [
-    111.16667399782507,
-    30.778530884777524,
-    39.31836139950626
-  ],
-  [
-    111.16597777569311,
-    30.780231514915492,
-    59.7008954773248
-  ],
-  [
-    111.16644148797093,
-    30.7783077119839,
-    39.093951356031724
-  ],
-  [
-    111.1660474125307,
-    30.77949918968594,
-    39.212308234093044
-  ],
-  [
-    111.16529285486035,
-    30.778868634636357,
-    39.31941804949036
-  ],
-  [
-    111.16740407477948,
-    30.779061478020086,
-    39.294159814875016
-  ],
-  [
-    111.168372747005,
-    30.778959234694586,
-    39.31453908013205
-  ],
-  [
-    111.16772852024482,
-    30.777851331932325,
-    39.20970632836639
-  ]
-],
-// 坝段 10 - 在这里填写你收集的第十个坝段的坐标
-[
-  [
-    111.16611164179854,
-    30.772449104050164,
-    487.4484700727728
-  ],
-  [
-    111.164296106524,
-    30.78159172647131,
-    132.4143339782431
-  ],
-  [
-    111.16364492807398,
-    30.781773819256784,
-    142.56179501249088
-  ],
-  [
-    111.1638650252355,
-    30.7800391346784,
-    39.53039439876928
-  ],
-  [
-    111.1631239101169,
-    30.780230091917204,
-    49.948255703896166
-  ],
-  [
-    111.16589382667075,
-    30.77961504847768,
-    39.062671201288055
-  ]
-]
-
-];
-
-// 是否自动应用蒙版配置（如果 DAM_SEGMENT_BOUNDS 有数据）
-const AUTO_APPLY_MASK_CONFIG = false; // 设置为 false，关闭蒙版功能
-
 // ====== 测点配置 ======
 // 测点坐标配置（EX1-10，共10个测点，前端写死）
 const SENSOR_POINTS = {
@@ -798,7 +355,6 @@ function performHighlight(names) {
               // 设置高亮颜色
               feature.color = highlightColor;
               highlightedCount++;
-              console.log(`高亮节点: ${featureName} (匹配: ${targetName})`);
               break;
             }
           }
@@ -822,10 +378,6 @@ function performHighlight(names) {
   
   // 请求重新渲染
   viewer.scene.requestRender();
-  
-  if (highlightedCount > 0) {
-    console.log(`本次高亮了 ${highlightedCount} 个匹配的feature，总计 ${lastHighlightedFeatures.length} 个`);
-  }
 }
 
 /**
@@ -1006,15 +558,14 @@ function addTilesetInteraction() {
         entity.label.font = '18pt bold sans-serif';
       }
     } catch (e) {
-      console.warn('恢复测点悬停效果失败:', e);
+      // 恢复失败，忽略
     }
   }
   
-  // 点击选择和高亮（优先检测测点，然后检测蒙版热区）
+  // 点击选择和高亮（优先检测测点）
   handler.setInputAction((click) => {
     // 调整鼠标坐标以考虑 PageScaler 的缩放
     const adjustedPosition = getScaledPosition(click.position, viewer.canvas);
-    console.log('点击事件触发，原始位置:', click.position, '调整后位置:', adjustedPosition);
     
     // ====== 优先检测测点 ======
     const pickedObject = viewer.scene.pick(adjustedPosition);
@@ -1033,27 +584,21 @@ function addTilesetInteraction() {
         const sensorName = entity.sensorName;
         // 检查测点是否存在
         if (sensorEntities.has(sensorName)) {
-          console.log(`✅ 点击测点: ${sensorName}`);
+          // 立即触发回调，显示弹窗（不等待飞行完成）
+          if (onSensorClickCallback) {
+            onSensorClickCallback(sensorName);
+          }
           
-          // 飞行到测点位置
-          flyToSensor(sensorName, () => {
-            // 飞行完成后触发回调，显示弹窗
-            if (onSensorClickCallback) {
-              onSensorClickCallback(sensorName);
-            }
-          });
+          // 飞行到测点位置（可选，不影响弹窗显示）
+          flyToSensor(sensorName);
           
           return;
-        } else {
-          console.warn(`⚠️ 点击的测点 ${sensorName} 不在 sensorEntities 中`);
-          console.log('当前 sensorEntities 中的测点:', Array.from(sensorEntities.keys()));
         }
       }
     }
     
     // 如果没点击到测点，尝试使用 drillPick（穿透拾取）
     const drillPickResults = viewer.scene.drillPick(adjustedPosition || click.position);
-    console.log('drillPick 结果数量:', drillPickResults.length);
     
     for (const result of drillPickResults) {
       let entity = null;
@@ -1068,14 +613,13 @@ function addTilesetInteraction() {
       if (entity && entity.sensorName) {
         const sensorName = entity.sensorName;
         if (sensorEntities.has(sensorName)) {
-          console.log(`✅ 通过 drillPick 检测到测点: ${sensorName}`);
+          // 立即触发回调，显示弹窗（不等待飞行完成）
+          if (onSensorClickCallback) {
+            onSensorClickCallback(sensorName);
+          }
           
-          flyToSensor(sensorName, () => {
-            // 飞行完成后触发回调，显示弹窗
-            if (onSensorClickCallback) {
-              onSensorClickCallback(sensorName);
-            }
-          });
+          // 飞行到测点位置（可选，不影响弹窗显示）
+          flyToSensor(sensorName);
           
           return;
         }
@@ -1087,55 +631,15 @@ function addTilesetInteraction() {
       const entityName = pickedObject.id?.name || pickedObject.primitive?.id?.name;
       if (entityName && sensorEntities.has(entityName)) {
         const sensorName = entityName;
-        console.log(`✅ 通过实体名称检测到测点: ${sensorName}`);
+        // 立即触发回调，显示弹窗（不等待飞行完成）
+        if (onSensorClickCallback) {
+          onSensorClickCallback(sensorName);
+        }
         
-        flyToSensor(sensorName, () => {
-          if (onSensorClickCallback) {
-            onSensorClickCallback(sensorName);
-          }
-        });
+        // 飞行到测点位置（可选，不影响弹窗显示）
+        flyToSensor(sensorName);
         
-        return;
-      }
-    }
-    
-    // ====== 检测蒙版热区 ======
-    if (maskConfig.enabled && maskConfig.maskEntities.length > 0) {
-      const pickedObject = viewer.scene.pick(adjustedPosition || click.position);
-      
-      // 检查是否点击到了蒙版热区
-      if (Cesium.defined(pickedObject) && pickedObject.id) {
-        const entity = pickedObject.id;
-        
-        // 检查是否是蒙版热区实体
-        if (maskConfig.maskEntities.includes(entity) && entity.segmentIndex !== undefined) {
-          const segmentIndex = entity.segmentIndex;
-          console.log(`点击蒙版热区：坝段 ${segmentIndex}`);
-          
-          // 高亮对应的坝段（通过名称高亮）
-          if (segmentIndex >= 0 && segmentIndex < maskConfig.totalSegments) {
-            highlightFeaturesByName(`segment_${segmentIndex + 1}`);
-            selectedSegmentId.value = `segment_${segmentIndex}`;
             return;
-          }
-        }
-      }
-      
-      // 如果启用了蒙版但没点击到热区，尝试使用 drillPick
-      const drillPickResults = viewer.scene.drillPick(adjustedPosition || click.position);
-      for (const result of drillPickResults) {
-        if (result.id && maskConfig.maskEntities.includes(result.id)) {
-          const entity = result.id;
-          if (entity.segmentIndex !== undefined) {
-            const segmentIndex = entity.segmentIndex;
-            console.log(`通过 drillPick 检测到蒙版热区：坝段 ${segmentIndex}`);
-            if (segmentIndex >= 0 && segmentIndex < maskConfig.totalSegments) {
-              highlightFeaturesByName(`segment_${segmentIndex + 1}`);
-              selectedSegmentId.value = `segment_${segmentIndex}`;
-              return;
-            }
-          }
-        }
       }
     }
     
@@ -1143,38 +647,31 @@ function addTilesetInteraction() {
     
     // 先尝试使用 pick
     let pickedFeature = viewer.scene.pick(adjustedPosition || click.position);
-    console.log('pick 结果:', pickedFeature);
     
     // 如果 pick 失败，尝试使用 drillPick 获取所有对象
     if (!Cesium.defined(pickedFeature)) {
-      console.log('pick 未选中对象，尝试使用 drillPick...');
       const drillPickResults = viewer.scene.drillPick(adjustedPosition || click.position);
-      console.log('drillPick 结果数量:', drillPickResults.length);
       
       // 在 drillPick 结果中查找 Cesium3DTileFeature
       for (const result of drillPickResults) {
         if (result.object instanceof Cesium.Cesium3DTileFeature && result.object.primitive === tileset) {
           pickedFeature = result.object;
-          console.log('在 drillPick 中找到 Cesium3DTileFeature:', pickedFeature);
           break;
         }
       }
     }
     
     if (!Cesium.defined(pickedFeature)) {
-      console.log('点击空白处，未找到任何 feature，清除高亮');
       clearHighlight();
       return;
     }
     
     if (!(pickedFeature instanceof Cesium.Cesium3DTileFeature)) {
-      console.log('点击的对象不是 Cesium3DTileFeature，类型:', pickedFeature.constructor?.name);
       clearHighlight();
       return;
     }
     
     if (pickedFeature.primitive !== tileset) {
-      console.log('点击的对象不属于当前 tileset');
       clearHighlight();
       return;
     }
@@ -1189,8 +686,6 @@ function addTilesetInteraction() {
     if (!featureName && pickedFeature.name) {
       featureName = pickedFeature.name;
     }
-    
-    console.log('点击的feature名称:', featureName);
 
     // 提取节点模式并高亮所有匹配的节点
     if (featureName) {
@@ -1199,7 +694,6 @@ function addTilesetInteraction() {
         // 匹配到已知节点模式，高亮所有同类型节点
         highlightFeaturesByName(nodePattern);
         selectedSegmentId.value = nodePattern;
-        console.log(`高亮节点模式: ${nodePattern}`);
       } else {
         // 其他节点，只高亮当前点击的feature
         clearHighlight();
@@ -1225,10 +719,6 @@ function addTilesetInteraction() {
 
       if (segmentId) {
         selectedSegmentId.value = segmentId;
-        console.log('点击坝段 segmentId:', segmentId);
-      } else {
-        console.warn('未能解析分段ID，请检查模型属性');
-        console.log('pickedFeature:', pickedFeature);
       }
     }
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -1247,7 +737,6 @@ function switchView(viewName) {
   if (!tileset || !viewer) return;
   const config = viewConfigs[viewName];
   if (!config) {
-    console.warn(`视角配置不存在: ${viewName}`);
     return;
   }
 
@@ -1278,7 +767,6 @@ function setEffect(effectKey, enabled) {
     case 'antiAliasing':
       // 控制FXAA抗锯齿
       viewer.scene.postProcessStages.fxaa.enabled = enabled
-      console.log('抗锯齿:', enabled ? '开启' : '关闭')
       break
       
     case 'lighting':
@@ -1290,7 +778,6 @@ function setEffect(effectKey, enabled) {
           ? Cesium.LightingModel.PBR 
           : Cesium.LightingModel.UNLIT
       }
-      console.log('光效:', enabled ? '开启' : '关闭')
       break
       
     case 'shadows':
@@ -1306,133 +793,16 @@ function setEffect(effectKey, enabled) {
           ? Cesium.ShadowMode.ENABLED 
           : Cesium.ShadowMode.DISABLED
       }
-      console.log('阴影:', enabled ? '开启' : '关闭')
       break
       
     default:
-      console.warn('未知的效果类型:', effectKey)
+      break
   }
   
   // 请求重新渲染
   viewer.scene.requestRender()
 }
 
-
-// ====== 蒙版热区系统实现 ======
-
-/**
- * 清除所有蒙版热区
- */
-function clearMaskEntities() {
-  if (!viewer) return;
-  
-  maskConfig.maskEntities.forEach(entity => {
-    viewer.entities.remove(entity);
-  });
-  maskConfig.maskEntities = [];
-  console.log('已清除所有蒙版热区');
-}
-
-/**
- * 根据手动配置创建蒙版热区
- * @param {Array} boundsConfig - 边界配置数组，每个元素是一个坝段的边界坐标
- * 格式：[
- *   [[lon1, lat1, height1], [lon2, lat2, height2], ...], // 坝段0
- *   [[lon1, lat1, height1], [lon2, lat2, height2], ...], // 坝段1
- *   ...
- * ]
- */
-function createMaskEntitiesFromConfig(boundsConfig) {
-  if (!viewer || !boundsConfig || boundsConfig.length === 0) {
-    console.warn('无法创建蒙版热区：配置为空');
-    return;
-  }
-
-  // 清除旧的蒙版
-  clearMaskEntities();
-
-  // 为每个坝段创建热区
-  boundsConfig.forEach((bounds, segmentIndex) => {
-    if (!bounds || bounds.length < 3) {
-      console.warn(`坝段 ${segmentIndex} 的边界配置无效，跳过`);
-      return;
-    }
-
-    // 创建不可见的多边形作为热区
-    const entity = viewer.entities.add({
-      name: `dam_segment_${segmentIndex}`,
-      polygon: {
-        hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights(
-          bounds.flatMap(coord => [coord[0], coord[1], coord[2] || 0])
-        ),
-        material: maskConfig.debugMode 
-          ? Cesium.Color.RED.withAlpha(0.3) // 调试模式：显示红色半透明
-          : Cesium.Color.TRANSPARENT, // 正常模式：完全透明
-        outline: maskConfig.debugMode, // 调试模式：显示轮廓
-        outlineColor: maskConfig.debugMode ? Cesium.Color.RED : Cesium.Color.TRANSPARENT,
-        height: 0,
-        extrudedHeight: 0,
-        perPositionHeight: true, // 使用每个坐标点的高度
-        // 设置拾取优先级，确保蒙版可以被点击
-        classificationType: Cesium.ClassificationType.BOTH
-      },
-      // 存储分段索引，用于点击时识别
-      segmentIndex: segmentIndex
-    });
-
-    maskConfig.maskEntities.push(entity);
-    console.log(`创建坝段 ${segmentIndex} 的蒙版热区，包含 ${bounds.length} 个顶点`);
-  });
-
-  console.log(`成功创建 ${maskConfig.maskEntities.length} 个蒙版热区`);
-}
-
-
-/**
- * 设置蒙版配置（供外部调用）
- * @param {Object} config - 配置对象
- * @param {boolean} config.enabled - 是否启用蒙版模式
- * @param {boolean} config.debugMode - 是否显示热区边界（调试用）
- * @param {Array} config.segmentBounds - 手动定义的坝段边界坐标数组
- * @param {number} config.totalSegments - 总段数（默认11）
- */
-function setMaskConfig(config) {
-  if (config.enabled !== undefined) {
-    maskConfig.enabled = config.enabled;
-    console.log(`蒙版模式: ${config.enabled ? '启用' : '禁用'}`);
-  }
-  
-  if (config.debugMode !== undefined) {
-    maskConfig.debugMode = config.debugMode;
-    console.log(`蒙版调试模式: ${config.debugMode ? '开启' : '关闭'}`);
-    
-    // 更新现有热区的显示状态
-    maskConfig.maskEntities.forEach(entity => {
-      if (entity.polygon) {
-        entity.polygon.material = maskConfig.debugMode 
-          ? Cesium.Color.RED.withAlpha(0.3)
-          : Cesium.Color.TRANSPARENT;
-        entity.polygon.outline = maskConfig.debugMode;
-        entity.polygon.outlineColor = maskConfig.debugMode 
-          ? Cesium.Color.RED 
-          : Cesium.Color.TRANSPARENT;
-      }
-    });
-    viewer.scene.requestRender();
-  }
-  
-  if (config.totalSegments !== undefined) {
-    maskConfig.totalSegments = config.totalSegments;
-    console.log(`蒙版总段数设置为: ${maskConfig.totalSegments}`);
-  }
-  
-  if (config.segmentBounds && config.segmentBounds.length > 0) {
-    maskConfig.segmentBounds = config.segmentBounds;
-    createMaskEntitiesFromConfig(config.segmentBounds);
-  } else if (config.enabled && maskConfig.maskEntities.length === 0) {
-    console.warn('未提供手动配置，无法创建蒙版热区。请提供 segmentBounds 配置。');
-  }
-}
 
 // ====== 测点相关功能 ======
 
@@ -1442,7 +812,6 @@ function setMaskConfig(config) {
  */
 async function createSensorEntities() {
   if (!viewer) {
-    console.warn('⚠️ viewer 未初始化，无法创建测点实体');
     return false;
   }
   
@@ -1452,7 +821,7 @@ async function createSensorEntities() {
       try {
         viewer.entities.remove(entity);
       } catch (e) {
-        console.warn('移除旧测点实体失败:', e);
+        // 移除失败，忽略
       }
     });
     sensorEntities.clear();
@@ -1460,7 +829,6 @@ async function createSensorEntities() {
     // 前端写死，直接使用 SENSOR_POINTS 配置的坐标
     // 为每个测点创建实体
     const sensorNames = Object.keys(SENSOR_POINTS);
-    console.log(`📝 开始创建 ${sensorNames.length} 个测点实体（前端写死）...`);
     
     for (const sensorName of sensorNames) {
       const coords = SENSOR_POINTS[sensorName];
@@ -1506,7 +874,6 @@ async function createSensorEntities() {
         });
         
         sensorEntities.set(sensorName, entity);
-        console.log(`✅ 创建测点实体: ${sensorName} 位置: [${lon.toFixed(6)}, ${lat.toFixed(6)}, ${height.toFixed(2)}]`);
       } catch (error) {
         console.error(`❌ 创建测点 ${sensorName} 失败:`, error);
       }
@@ -1514,12 +881,6 @@ async function createSensorEntities() {
     
     const createdCount = sensorEntities.size;
     const expectedCount = sensorNames.length;
-    console.log(`✅ 已创建 ${createdCount}/${expectedCount} 个测点实体`);
-    console.log('📋 测点列表:', Array.from(sensorEntities.keys()));
-    
-    if (createdCount !== expectedCount) {
-      console.warn(`⚠️ 测点创建不完整！期望 ${expectedCount} 个，实际创建 ${createdCount} 个`);
-    }
     
     return createdCount === expectedCount;
   } catch (error) {
@@ -1546,47 +907,54 @@ function setOnSensorClick(callback) {
  */
 async function flyToSensor(sensorName, onComplete) {
   if (!viewer) {
-    console.error('❌ viewer 未初始化');
     // 尝试等待 viewer 初始化
     setTimeout(() => {
       if (viewer) {
         flyToSensor(sensorName, onComplete);
-      } else {
-        console.error('❌ viewer 初始化失败');
       }
     }, 500);
     return;
   }
   
+  // 先飞到大坝视角，确保定位准确
+  await new Promise((resolve) => {
+    if (!tileset) {
+      resolve();
+      return;
+    }
+    
+    const damViewConfig = viewConfigs['damView'] || viewConfigs['frontendView'];
+    const offset = new Cesium.HeadingPitchRange(
+      Cesium.Math.toRadians(damViewConfig.heading),
+      Cesium.Math.toRadians(damViewConfig.pitch),
+      damViewConfig.range
+    );
+    
+    // 使用 flyToBoundingSphere 飞行到大坝视角
+    viewer.camera.flyToBoundingSphere(tileset.boundingSphere, {
+      offset,
+      duration: damViewConfig.duration || 1.0,
+      complete: () => {
+        // 等待一小段时间，确保视角稳定
+        setTimeout(resolve, 200);
+      }
+    });
+  });
+  
   // 如果测点不存在，立即尝试创建
   if (!sensorEntities.has(sensorName)) {
-    console.warn(`⚠️ 测点 ${sensorName} 不存在，立即创建...`);
-    console.log('📋 当前已创建的测点:', Array.from(sensorEntities.keys()));
-    console.log('📋 期望的测点列表:', Object.keys(SENSOR_POINTS));
-    
     // 立即尝试创建测点实体（异步创建）
     const success = await createSensorEntities();
     
     if (!success) {
-      console.error('❌ 创建测点实体失败');
-      console.error('可能的原因：');
-      console.error('  1. viewer 未正确初始化');
-      console.error('  2. 测点坐标配置错误');
-      console.error('  3. Cesium 库未加载完成');
       return;
     }
     
     // 再次检查
     if (!sensorEntities.has(sensorName)) {
-      console.error(`❌ 创建后，测点 ${sensorName} 仍然不存在`);
-      console.error('📋 已创建的测点:', Array.from(sensorEntities.keys()));
-      console.error('📋 检查配置中是否包含该测点:', SENSOR_POINTS[sensorName] ? '✅ 存在' : '❌ 不存在');
-      
       // 如果配置中存在但创建失败，尝试单独创建这个测点
       if (SENSOR_POINTS[sensorName]) {
-        console.log('⚠️ 配置中存在该测点，但批量创建失败，尝试单独创建...');
         const coords = SENSOR_POINTS[sensorName];
-        console.log('坐标:', coords);
         
         if (coords && coords.length === 3) {
           try {
@@ -1619,21 +987,15 @@ async function flyToSensor(sensorName, onComplete) {
               sensorType: sensorName.startsWith('EX') ? 'EX' : 'IP'
             });
             sensorEntities.set(sensorName, entity);
-            console.log(`✅ 单独创建测点 ${sensorName} 成功`);
           } catch (error) {
-            console.error(`❌ 单独创建测点 ${sensorName} 失败:`, error);
             return;
           }
         } else {
-          console.error('❌ 坐标格式错误');
           return;
         }
       } else {
-        console.error('❌ 配置中不存在该测点');
         return;
       }
-    } else {
-      console.log(`✅ 创建成功，测点 ${sensorName} 现在存在`);
     }
   }
   
@@ -1641,21 +1003,32 @@ async function flyToSensor(sensorName, onComplete) {
   const position = entity.position.getValue();
   
   // 飞行到测点位置，使用合适的观察距离和角度
-  // 计算一个偏移位置（在测点前方约150米，高度约50米）
-  const heading = viewer.camera.heading;
-  const pitch = viewer.camera.pitch;
+  // 由于先回到大坝视角，现在使用固定的大坝视角朝向计算偏移
+  const damViewConfig = viewConfigs['damView'] || viewConfigs['frontendView'];
+  const damHeading = damViewConfig.heading; // 度（约-75度，东北方向）
+  const headingRad = Cesium.Math.toRadians(damHeading);
   
-  // 创建一个从测点向前的偏移向量
-  const offset = Cesium.Cartesian3.multiplyByScalar(
-    Cesium.Cartesian3.normalize(
-      Cesium.Cartesian3.subtract(
-        viewer.camera.position,
-        position,
-        new Cesium.Cartesian3()
-      ),
-      new Cesium.Cartesian3()
-    ),
-    150, // 距离测点150米
+  // 使用基于大坝视角的固定偏移方向
+  // 创建一个朝向东北方向的偏移向量（基于大坝视角的朝向）
+  // 转换到测点的局部坐标系
+  const cartographic = Cesium.Cartographic.fromCartesian(position);
+  
+  // 使用 East-North-Up 坐标系来计算偏移
+  // 在测点位置创建 ENU 坐标系
+  const transform = Cesium.Transforms.eastNorthUpToFixedFrame(position);
+  
+  // 在 ENU 坐标系中定义偏移（前方150米，高度50米）
+  // 前方 = 北方向，右侧 = 东方向
+  const localOffset = new Cesium.Cartesian3(
+    -150 * Math.sin(headingRad), // 东向偏移
+    -150 * Math.cos(headingRad), // 北向偏移（前方）
+    50 // 高度偏移50米
+  );
+  
+  // 将局部偏移转换为世界坐标
+  const offset = Cesium.Matrix4.multiplyByPointAsVector(
+    transform,
+    localOffset,
     new Cesium.Cartesian3()
   );
   
@@ -1665,19 +1038,17 @@ async function flyToSensor(sensorName, onComplete) {
   viewer.camera.flyTo({
     destination: destination,
     orientation: {
-      heading: heading, // 保持当前朝向
+      heading: headingRad, // 使用大坝视角的朝向
       pitch: Cesium.Math.toRadians(-30), // 向下30度角
       roll: 0.0
     },
-    duration: 2.0, // 飞行时间2秒
+    duration: 1.5, // 飞行时间1.5秒
     complete: () => {
       if (onComplete) {
         onComplete();
       }
     }
   });
-  
-  console.log(`✈️ 飞行到测点: ${sensorName}`);
 }
 
 /**
@@ -1718,7 +1089,6 @@ function getSensorEntities() {
  */
 function getSensorCoordinates(sensorName) {
   if (!sensorEntities.has(sensorName)) {
-    console.warn(`测点 ${sensorName} 不存在`);
     return null;
   }
   
@@ -1748,8 +1118,6 @@ function updateSensorCoordinates(sensorName, lon, lat, height) {
   // 同时更新配置中的坐标
   if (SENSOR_POINTS[sensorName]) {
     SENSOR_POINTS[sensorName] = [lon, lat, height];
-    console.log(`✅ 已更新测点 ${sensorName} 的坐标: [${lon}, ${lat}, ${height}]`);
-    console.log('💡 提示：请将新坐标复制到代码中的 SENSOR_POINTS 配置中');
   }
   
   return true;
@@ -1759,22 +1127,7 @@ function updateSensorCoordinates(sensorName, lon, lat, height) {
  * 打印所有测点的当前坐标（用于调试）
  */
 function printAllSensorCoordinates() {
-  console.log('📋 所有测点的当前坐标：');
-  console.log('const SENSOR_POINTS = {');
-  
-  Object.keys(SENSOR_POINTS).forEach(sensorName => {
-    if (sensorEntities.has(sensorName)) {
-      const coords = getSensorCoordinates(sensorName);
-      if (coords) {
-        console.log(`  ${sensorName}: [${coords.longitude.toFixed(10)}, ${coords.latitude.toFixed(10)}, ${coords.height.toFixed(2)}],`);
-      }
-    } else {
-      const coords = SENSOR_POINTS[sensorName];
-      console.log(`  ${sensorName}: [${coords[0]}, ${coords[1]}, ${coords[2]}], // ⚠️ 未创建`);
-    }
-  });
-  
-  console.log('};');
+  // 静默模式：不输出到控制台
 }
 
 // 暴露方法供父组件调用
@@ -1784,10 +1137,6 @@ defineExpose({
   highlightFeaturesByName,
   clearHighlight,
   setEffect,
-  // 蒙版相关 API
-  setMaskConfig,
-  createMaskEntitiesFromConfig,
-  clearMaskEntities,
   // 测点相关 API
   createSensorEntities,
   flyToSensor,
@@ -1857,34 +1206,11 @@ onMounted(async () => {
     // 应用默认效果设置到tileset
     tileset.lightingModel = Cesium.LightingModel.PBR
     tileset.shadows = Cesium.ShadowMode.ENABLED
-    
-    // 调试：检查 tileset 是否有 feature
-    console.log('Tileset 加载完成');
-    console.log('Tileset root:', tileset.root);
-    if (tileset.root && tileset.root.content) {
-      console.log('Root content featuresLength:', tileset.root.content.featuresLength);
-      console.log('Root content 类型:', tileset.root.content.constructor?.name);
-      if (tileset.root.content.featuresLength > 0) {
-        console.log('有 features，可以尝试获取第一个 feature');
-        const firstFeature = tileset.root.content.getFeature(0);
-        if (firstFeature) {
-          console.log('第一个 feature:', firstFeature);
-          if (typeof firstFeature.getPropertyNames === 'function') {
-            const propNames = firstFeature.getPropertyNames();
-            console.log('第一个 feature 的属性名:', propNames);
-          }
-        }
-      } else {
-        console.warn('⚠️ Tileset 没有 features！这可能是从 GLB 转换的问题。');
-        console.log('建议：在 Blender 中为节点添加自定义属性，然后导出为 glTF 格式');
-      }
-    }
 
     // 等待tileset完全加载后再进行交互设置
     // 当tileset加载新tiles时，重新检查并高亮待高亮的节点
     tileset.loadProgress.addEventListener((numberOfPendingRequests, numberOfTilesProcessing) => {
       if (numberOfPendingRequests === 0 && numberOfTilesProcessing === 0) {
-        console.log('Tileset加载完成，所有tiles已加载');
         // 如果有待高亮的节点名称，重新执行高亮（确保新加载的tiles也被高亮）
         if (pendingHighlightNames && pendingHighlightNames.length > 0) {
           performHighlight(pendingHighlightNames);
@@ -1910,52 +1236,25 @@ onMounted(async () => {
       if (!viewer) {
         if (retryCount < maxRetries) {
           retryCount++;
-          console.log(`⏳ viewer 未准备好，${200 * retryCount}ms 后重试 (${retryCount}/${maxRetries})...`);
           setTimeout(tryCreateSensorEntities, 200 * retryCount);
-        } else {
-          console.error('❌ viewer 初始化超时，无法创建测点实体');
         }
         return;
       }
       
       if (retryCount >= maxRetries) {
-        console.error('❌ 多次尝试创建测点实体失败');
         return;
       }
       
       retryCount++;
-      console.log(`🔄 尝试创建测点实体 (${retryCount}/${maxRetries})...`);
       const success = await createSensorEntities().catch(() => false);
       
       if (!success && retryCount < maxRetries) {
-        console.log(`⏳ 测点实体创建失败，${300 * retryCount}ms 后重试...`);
         setTimeout(tryCreateSensorEntities, 300 * retryCount);
-      } else if (success) {
-        console.log('✅ 测点实体创建成功！');
-        console.log('📋 所有测点:', Array.from(sensorEntities.keys()));
-      } else {
-        console.error('❌ 测点实体创建失败');
       }
     }
     
     // 立即尝试一次，如果失败再延迟重试
     tryCreateSensorEntities();
-    
-    // ====== 自动应用蒙版配置 ======
-    // 如果配置了坐标数据且启用了自动应用，则在模型加载完成后自动创建蒙版热区
-    if (AUTO_APPLY_MASK_CONFIG && DAM_SEGMENT_BOUNDS && DAM_SEGMENT_BOUNDS.length > 0) {
-      // 等待一小段时间确保所有资源加载完成
-      setTimeout(() => {
-        setMaskConfig({
-          enabled: true,
-          debugMode: true, // 开启调试模式，显示红色热区（方便查看位置）
-          totalSegments: DAM_SEGMENT_BOUNDS.length,
-          segmentBounds: DAM_SEGMENT_BOUNDS
-        });
-        console.log(`✅ 已自动应用 ${DAM_SEGMENT_BOUNDS.length} 个坝段的蒙版热区配置`);
-        console.log('💡 提示：如果热区位置准确，可以在代码中将 debugMode 设置为 false');
-      }, 1000);
-    }
     
     // ====== 添加水流水面（Polygon） ======
     const absImgUrl = window.location.origin + '/images/water.png';
@@ -2020,8 +1319,6 @@ onMounted(async () => {
         heightReference: Cesium.HeightReference.NONE
       }
     });
-    
-    console.log('✅ 河道水面已创建，包含', waterSurfaceCoordinates.length, '个边界点');
     
     // TODO: 如需添加水流动画效果，可以考虑：
     // 1. 使用Primitive API替代Entity API（更灵活，支持自定义Material）

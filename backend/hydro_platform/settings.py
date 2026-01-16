@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'django_filters',  # Django REST Framework 过滤器支持
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -165,8 +166,8 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    # 访问Token有效期（1小时）
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    # 访问Token有效期（1分钟）
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
     # 刷新Token有效期（7天）
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     # Token前缀（前端请求头格式：Authorization: Bearer <token>）

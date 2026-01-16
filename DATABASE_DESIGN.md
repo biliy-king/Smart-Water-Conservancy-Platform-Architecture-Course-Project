@@ -109,7 +109,7 @@ VALUES ('河海大坝', '2级', 1000.0, 500.0, 100.0, '/static/models/dam.glb');
 | device_type | varchar(50) | NOT NULL | 设备类型：inverted_plumb_left_right/inverted_plumb_up_down/hydrostatic_leveling/tension_wire/water_level_upstream/water_level_downstream |
 | install_position | varchar(100) | NOT NULL | 安装位置（如"坝段1-左岸"） |
 | install_time | date | NOT NULL | 安装时间 |
-| device_status | varchar(20) | DEFAULT "running" | 设备状态：running/offline/maintenance |
+| device_status | varchar(20) | DEFAULT "running" | 设备状态：running（正常运行）/stopped（停用）/faulty（设备故障） |
 
 **唯一约束**: (structure_id, install_position, device_type) - **不允许重复**
 
@@ -176,6 +176,7 @@ VALUES (1, 'IP1-左右岸CH1', 10.0, -10.0);
 | tension_wire_up_down | float | NULL | 引张线-上下游位移（mm） |
 | water_level_upstream | float | NULL | 上游水位（m） |
 | water_level_downstream | float | NULL | 下游水位（m） |
+| status | varchar(10) | DEFAULT "normal" | 预警状态：normal（正常）/warning（预警）/alarm（告警），系统自动判断 |
 
 **唯一约束**: (point_id, monitor_time) - **同一测点同一时刻不允许重复**
 
@@ -186,6 +187,12 @@ VALUES (1, 'IP1-左右岸CH1', 10.0, -10.0);
 | -999.2 | 被遮挡无法观测 |
 | -999.9 | 乱码数据（无效） |
 | NULL | 该测点该时刻无测量（不同设备间互不影响） |
+
+**预警状态说明**:
+- `normal`: 正常状态，所有监测值在安全范围内
+- `warning`: 预警状态，监测值接近或超过阈值
+- `alarm`: 告警状态，监测值严重超过阈值（超过阈值的2倍）
+- 状态由系统在`save()`方法中自动判断，无需手动填写
 
 **关系**: `monitoring_monitordata.point_id` → `water_structures_point.id` (多对一)
 
@@ -198,8 +205,8 @@ VALUES
 (2, '2024-12-31 00:00:00', -999.1, NULL);  -- -999.1 表示数据异常
 ```
 
-**数据统计**（截至 2025-01-11）:
-- 总记录数: **37,005 条**
+**数据统计**（截至 2026-01-11）:
+- 总记录数: **37,005+ 条**
 - 倒垂线左右岸: 7,746 条
 - 倒垂线上下游: 7,744 条
 - 引张线: 6,055 条
@@ -207,6 +214,12 @@ VALUES
 - 上游水位: 5,065 条
 - 下游水位: 5,029 条
 - 异常标记: 163 条（需人工审核）
+
+**预警状态分布**:
+- `normal`: 正常状态数据
+- `warning`: 预警状态数据（接近阈值）
+- `alarm`: 告警状态数据（严重超过阈值）
+- 状态由系统在数据保存时自动计算，基于监测值与阈值的对比
 
 ---
 
@@ -394,5 +407,6 @@ ORDER BY md.monitor_time DESC;
 
 ---
 
-**文档生成时间**: 2026-01-11  
-**维护者**: 智慧水利监测平台技术团队
+**文档版本**: v1.1  
+**最后更新**: 2026-01-16
+

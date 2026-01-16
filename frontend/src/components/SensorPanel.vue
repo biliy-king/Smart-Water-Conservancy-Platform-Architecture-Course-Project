@@ -12,6 +12,8 @@
         @click="selectSensor(sensor)"
       >
         <div class="sensor-rectangle" :class="sensor.status"></div>
+        <!-- 异常仪器红点提示 -->
+        <div v-if="sensor.deviceStatus === 'stopped' || sensor.deviceStatus === 'faulty'" class="device-error-dot"></div>
         <div class="sensor-text">{{ sensor.name }}</div>
         <div class="sensor-status" :class="sensor.status">{{ sensor.statusText }}</div>
       </div>
@@ -20,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { getPoints } from '@/api/waterStructures'
 
 const emit = defineEmits(['select-sensor'])
@@ -81,13 +83,28 @@ async function loadSensors() {
       const matchedPoint = pointMap[upperName] || pointMap[sensorName]
       
       if (matchedPoint) {
+        // 获取设备运行状态
+        const deviceStatus = matchedPoint.device_info?.device_status || 'running'
+        // 根据设备运行状态设置显示状态
+        let displayStatus = 'normal'
+        let statusText = '正常'
+        
+        if (deviceStatus === 'stopped') {
+          displayStatus = 'warning'
+          statusText = '停用'
+        } else if (deviceStatus === 'faulty') {
+          displayStatus = 'abnormal'
+          statusText = '故障'
+        }
+        
         // 使用后端返回的完整测点信息
         return {
           id: sensorName, // 使用EX1-EX10作为ID（用于UI显示和Cesium飞行定位）
           name: sensorName, // 直接使用EX1-EX10作为名称（用于UI显示和Cesium飞行定位）
           pointId: matchedPoint.id, // 从后端获取的数字ID（用于加载详情）
-          status: matchedPoint.current_status || 'normal', // 使用后端的状态
-          statusText: getStatusText(matchedPoint.current_status || 'normal'),
+          status: displayStatus, // 显示状态（基于设备运行状态）
+          statusText: statusText,
+          deviceStatus: deviceStatus, // 保存设备运行状态（running/stopped/faulty）
           rawData: matchedPoint, // 保存完整的测点数据
           detail: matchedPoint // 保存完整的测点详情
         }
@@ -99,6 +116,7 @@ async function loadSensors() {
           pointId: null,
           status: 'normal',
           statusText: '正常',
+          deviceStatus: 'running',
           rawData: null,
           detail: null
         }
@@ -115,6 +133,7 @@ async function loadSensors() {
       pointId: null,
       status: 'normal',
       statusText: '正常',
+      deviceStatus: 'running',
       rawData: null,
       detail: null
     }))
@@ -141,12 +160,29 @@ function selectSensor(sensor) {
     selectedSensor.value = sensor.id
   }
   emit('select-sensor', sensor)
-  console.log('选择监测点:', sensor)
 }
 
 // 组件挂载时加载数据
 onMounted(() => {
   loadSensors()
+  
+  // 定时刷新测点列表（每10秒刷新一次，确保状态更新及时显示）
+  const refreshInterval = setInterval(() => {
+    loadSensors()
+  }, 10000)
+  
+  // 组件卸载时清除定时器
+  onUnmounted(() => {
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+    }
+  })
+})
+
+// 暴露 sensors 和刷新方法给父组件
+defineExpose({
+  sensors,
+  refresh: loadSensors
 })
 </script>
 
@@ -252,5 +288,30 @@ onMounted(() => {
   padding: 20px;
   color: #666;
   font-size: 24px;
+}
+
+/* 异常仪器红点提示 */
+.device-error-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  background: #f5222d;
+  border-radius: 50%;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(245, 34, 45, 0.6);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
 }
 </style>

@@ -108,3 +108,13 @@ export function updateStructure(id, data) {
 export function deleteStructure(id) {
   return api.delete(`/water-structures/structures/${id}/`)
 }
+
+/**
+ * 更新设备信息
+ * @param {number} id - 设备ID
+ * @param {Object} data - 设备数据
+ * @returns {Promise} 更新后的设备信息
+ */
+export function updateDevice(id, data) {
+  return api.patch(`/water-structures/devices/${id}/`, data)
+}

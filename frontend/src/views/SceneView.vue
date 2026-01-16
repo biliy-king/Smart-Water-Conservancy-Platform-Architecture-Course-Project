@@ -63,29 +63,32 @@
           </div>
         </div>
 
-        <!-- 监测状态总览 -->
-        <div class="monitoring-status">
-          <div class="status-title">当前监测状态</div>
+        <!-- 仪器运行状态总览 -->
+        <div class="monitoring-status" :key="`status-${normalCount}-${warningCount}-${alarmCount}`">
+          <div class="status-title">
+            仪器运行状态
+            <span v-if="totalPointsCount > 0" class="status-total">（共 {{ totalPointsCount }} 个仪器）</span>
+          </div>
           <div class="status-content">
-            <div class="status-item warning">
-              <div class="status-icon">⚠️</div>
-              <div class="status-info">
-                <div class="status-label">预警</div>
-                <div class="status-count">{{ warningCount }}</div>
-              </div>
-            </div>
-            <div class="status-item alarm">
-              <div class="status-icon">🚨</div>
-              <div class="status-info">
-                <div class="status-label">告警</div>
-                <div class="status-count">{{ alarmCount }}</div>
-              </div>
-            </div>
             <div class="status-item normal">
               <div class="status-icon">✅</div>
               <div class="status-info">
-                <div class="status-label">正常</div>
-                <div class="status-count">{{ normalCount }}</div>
+                <div class="status-label">正常运行</div>
+                <div class="status-count" :key="`normal-${normalCount}`" v-text="normalCount"></div>
+              </div>
+            </div>
+            <div class="status-item warning">
+              <div class="status-icon">⏸️</div>
+              <div class="status-info">
+                <div class="status-label">停用</div>
+                <div class="status-count" :key="`warning-${warningCount}`" v-text="warningCount"></div>
+              </div>
+            </div>
+            <div class="status-item alarm">
+              <div class="status-icon">🔴</div>
+              <div class="status-info">
+                <div class="status-label">设备故障</div>
+                <div class="status-count" :key="`alarm-${alarmCount}`" v-text="alarmCount"></div>
               </div>
             </div>
           </div>
@@ -155,33 +158,21 @@
       <transition name="slide-up-smooth">
         <div class="visualization-panel" v-if="showVisualizationPanel">
           <div class="visualization-content">
-            <!-- 水位折线图 -->
+            <!-- 水位折线图（双折线水位监测） -->
             <div class="chart-container">
-              <WaterLevelChart />
+              <UpstreamDownstreamWaterLevelChart title="水位监测" />
             </div>
-            <!-- 倒垂线-上下游位移 -->
+            <!-- 倒垂线-上下游位移（趋势折线图） -->
             <div class="chart-container">
-              <MaxMinChart 
-                title="倒垂线-上下游位移" 
-                field-name="inverted_plumb_up_down"
-                unit="mm"
-              />
+              <DownstreamDisplacementTrendChart title="倒垂线-上下游位移" />
             </div>
-            <!-- 倒垂线-左右岸位移 -->
+            <!-- 倒垂线-左右岸位移（堆叠柱状图） -->
             <div class="chart-container">
-              <MaxMinChart 
-                title="倒垂线-左右岸位移" 
-                field-name="inverted_plumb_left_right"
-                unit="mm"
-              />
+              <LeftRightDisplacementComparisonChart title="倒垂线-左右岸位移" />
             </div>
-            <!-- 静力水准沉降 -->
+            <!-- 静力水准沉降（面积图） -->
             <div class="chart-container">
-              <MaxMinChart 
-                title="静力水准沉降" 
-                field-name="hydrostatic_leveling_settlement"
-                unit="mm"
-              />
+              <StaticLevelSettlementAreaChart title="静力水准沉降" />
             </div>
           </div>
         </div>
@@ -200,14 +191,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, watch, getCurrentInstance } from 'vue'
 import CesiumScene from '@/components/CesiumScene.vue'
 import ViewSwitchPanel from '@/components/ViewSwitchPanel.vue'
 import EffectPanel from '@/components/EffectPanel.vue'
 import SensorPanel from '@/components/SensorPanel.vue'
 import SensorDetailModal from '@/components/SensorDetailModal.vue'
-import WaterLevelChart from '@/components/charts/WaterLevelChart_new.vue'
-import MaxMinChart from '@/components/charts/MaxMinChart.vue'
+import UpstreamDownstreamWaterLevelChart from '@/components/charts/UpstreamDownstreamWaterLevelChart.vue'
+import DownstreamDisplacementTrendChart from '@/components/charts/DownstreamDisplacementTrendChart.vue'
+import LeftRightDisplacementComparisonChart from '@/components/charts/LeftRightDisplacementComparisonChart.vue'
+import StaticLevelSettlementAreaChart from '@/components/charts/StaticLevelSettlementAreaChart.vue'
 import { getStructures, getPoints } from '@/api/waterStructures'
 import { getMonitorDataList } from '@/api/monitoring'
 import { isAuthenticated } from '@/utils/auth'
@@ -238,10 +231,11 @@ const cesiumSceneRef = ref(null)
 // 大坝信息
 const damInfo = ref({})
 
-// 监测状态数据
-const warningCount = ref(0)
-const alarmCount = ref(0)
-const normalCount = ref(0)
+// 仪器运行状态数据
+const warningCount = ref(0) // 停用数量
+const alarmCount = ref(0) // 故障数量
+const normalCount = ref(0) // 正常运行数量
+const totalPointsCount = ref(0) // 总仪器数
 
 let timeInterval = null
 let monitoringInterval = null
@@ -252,14 +246,11 @@ async function loadDamInfo() {
     const response = await getStructures({ page_size: 1 })
     if (response.data.results && response.data.results.length > 0) {
       damInfo.value = response.data.results[0]
-      console.log('加载大坝信息成功:', damInfo.value)
       
       // TODO: 可以根据大坝的cesium坐标调整Cesium场景的视角
       // if (damInfo.value.cesium_center_x && damInfo.value.cesium_center_y && cesiumSceneRef.value) {
       //   // 调整相机位置
       // }
-    } else {
-      console.warn('没有找到大坝信息')
     }
   } catch (error) {
     console.error('加载大坝信息失败:', error)
@@ -280,8 +271,79 @@ function formatDateTime(dateTimeStr) {
   })
 }
 
-// 加载监测统计数据（从数据库读取监测点状态）
+// EX1-10 测点设备名称列表（前端定义的映射，与 SensorPanel 和 CesiumScene 保持一致）
+const EX_SENSOR_NAMES = ['EX1', 'EX2', 'EX3', 'EX4', 'EX5', 'EX6', 'EX7', 'EX8', 'EX9', 'EX10']
+
+// 加载监测统计数据（直接使用 SensorPanel 的 sensors 数据，确保完全一致）
 async function loadMonitoringStatistics() {
+  try {
+    // 直接使用 SensorPanel 的 sensors 数据，确保与测点切换面板完全一致
+    const sensors = sensorPanelRef.value?.sensors || []
+    
+    if (sensors.length === 0) {
+      // 如果 SensorPanel 还没加载，等待一下再重试
+      setTimeout(() => {
+        loadMonitoringStatistics()
+      }, 500)
+      return
+    }
+    
+    // 统计设备运行状态（device_status）
+    let running = 0
+    let stopped = 0
+    let faulty = 0
+
+    sensors.forEach(sensor => {
+      // 使用 SensorPanel 中保存的 deviceStatus
+      const deviceStatus = sensor.deviceStatus || 'running'
+      
+      if (deviceStatus === 'running') {
+        running++
+      } else if (deviceStatus === 'stopped') {
+        stopped++
+      } else if (deviceStatus === 'faulty') {
+        faulty++
+      } else {
+        // 未知状态，默认当作 running
+        running++
+      }
+    })
+
+    // 固定为10个仪器
+    totalPointsCount.value = EX_SENSOR_NAMES.length
+    
+    normalCount.value = running
+    warningCount.value = stopped
+    alarmCount.value = faulty
+    
+    // 延迟检查 DOM 中的值
+    setTimeout(() => {
+      const normalCountEl = document.querySelector('.status-item.normal .status-count')
+      const warningCountEl = document.querySelector('.status-item.warning .status-count')
+      const alarmCountEl = document.querySelector('.status-item.alarm .status-count')
+      const normalElText = normalCountEl?.textContent?.trim()
+      const warningElText = warningCountEl?.textContent?.trim()
+      const alarmElText = alarmCountEl?.textContent?.trim()
+      
+      // 如果不匹配，手动更新 DOM（临时方案）
+      if (normalElText !== String(normalCount.value) && normalCountEl) {
+        normalCountEl.textContent = normalCount.value
+      }
+      if (warningElText !== String(warningCount.value) && warningCountEl) {
+        warningCountEl.textContent = warningCount.value
+      }
+      if (alarmElText !== String(alarmCount.value) && alarmCountEl) {
+        alarmCountEl.textContent = alarmCount.value
+      }
+    }, 200)
+    
+    return // 直接返回，不再执行后面的代码
+  } catch (error) {
+    console.error('从 SensorPanel 加载数据失败，使用备用方案:', error)
+    // 如果出错，继续使用原来的方法
+  }
+  
+  // 备用方案：直接从 API 获取数据（如果 SensorPanel 不可用）
   try {
     // 获取所有监测点
     const response = await getPoints({
@@ -289,48 +351,122 @@ async function loadMonitoringStatistics() {
     })
 
     if (response.data.results && response.data.results.length > 0) {
-      const points = response.data.results
+      const allPoints = response.data.results
+      
+      // 使用与 SensorPanel 完全相同的映射逻辑
+      // 建立映射：EX1对应EX1-2-位移mm，EX2对应EX1-3-位移mm，以此类推
+      const pointMap = new Map()
+      
+      allPoints.forEach(point => {
+        // 使用多种可能的字段名来获取测点名称（与 SensorPanel 一致）
+        const sensorName = point.point_code || 
+                         point.name || 
+                         point.device_info?.device_name ||
+                         point.device_name
 
-      // 统计各状态数量
-      let warning = 0
-      let alarm = 0
-      let normal = 0
+        if (sensorName) {
+          const code = sensorName.toUpperCase().trim()
+          // 直接使用测点名称作为key
+          pointMap.set(code, point)
 
-      points.forEach(point => {
-        if (point.current_status === 'warning') {
-          warning++
-        } else if (point.current_status === 'alarm') {
-          alarm++
-        } else if (point.current_status === 'normal') {
-          normal++
+          // 建立EX映射：EX1-2-位移mm → EX1, EX1-3-位移mm → EX2, EX1-4-位移mm → EX3, ...
+          // 这与 SensorPanel 中的映射规则完全一致
+          const match = code.match(/^EX1-(\d+)-位移MM$/i)
+          if (match) {
+            const deviceNum = parseInt(match[1])
+            // EX1-2-位移mm → EX1, EX1-3-位移mm → EX2, EX1-4-位移mm → EX3, ...
+            // deviceNum从2开始，对应EX1；deviceNum=3对应EX2，所以公式是：EX(deviceNum-1)
+            if (deviceNum >= 2 && deviceNum <= 11) {
+              const exName = `EX${deviceNum - 1}`
+              if (EX_SENSOR_NAMES.includes(exName) && !pointMap.has(exName)) {
+                pointMap.set(exName, point)
+              }
+            }
+          }
+        }
+      })
+      
+      // 只使用前端定义的10个测点
+      const exPoints = EX_SENSOR_NAMES.map(name => pointMap.get(name)).filter(Boolean)
+      
+      // 先重置所有值，确保响应式更新
+      totalPointsCount.value = EX_SENSOR_NAMES.length // 固定为10个
+      normalCount.value = 0
+      warningCount.value = 0
+      alarmCount.value = 0
+
+      // 统计设备运行状态（device_status）
+      let running = 0
+      let stopped = 0
+      let faulty = 0
+
+      exPoints.forEach(point => {
+        // 统计设备运行状态（device_status）
+        const deviceStatus = point.device_info?.device_status || 'running'
+        
+        if (deviceStatus === 'running') {
+          running++
+        } else if (deviceStatus === 'stopped') {
+          stopped++
+        } else if (deviceStatus === 'faulty') {
+          faulty++
+        } else {
+          // 未知状态，默认当作 running
+          running++
         }
       })
 
-      warningCount.value = warning
-      alarmCount.value = alarm
-      normalCount.value = normal
+      // 对于没有找到后端数据的测点，默认状态为 running
+      const foundCount = exPoints.length
+      if (foundCount < EX_SENSOR_NAMES.length) {
+        running += (EX_SENSOR_NAMES.length - foundCount)
+      }
 
-      console.log('监测点状态统计加载成功:', { warning, alarm, normal })
+      // 正常运行 = running, 停用 = stopped, 故障 = faulty
+      normalCount.value = running
+      warningCount.value = stopped
+      alarmCount.value = faulty
+      
+      // 延迟检查 DOM 中的值
+      setTimeout(() => {
+        const normalCountEl = document.querySelector('.status-item.normal .status-count')
+        const warningCountEl = document.querySelector('.status-item.warning .status-count')
+        const alarmCountEl = document.querySelector('.status-item.alarm .status-count')
+        const normalElText = normalCountEl?.textContent?.trim()
+        const warningElText = warningCountEl?.textContent?.trim()
+        const alarmElText = alarmCountEl?.textContent?.trim()
+        
+        // 如果不匹配，尝试手动更新 DOM（临时方案）
+        if (normalElText !== String(normalCount.value) && normalCountEl) {
+          normalCountEl.textContent = normalCount.value
+        }
+        if (warningElText !== String(warningCount.value) && warningCountEl) {
+          warningCountEl.textContent = warningCount.value
+        }
+        if (alarmElText !== String(alarmCount.value) && alarmCountEl) {
+          alarmCountEl.textContent = alarmCount.value
+        }
+      }, 200)
     } else {
-      console.warn('没有找到监测点数据')
-      // 使用模拟数据
-      warningCount.value = 2
-      alarmCount.value = 1
-      normalCount.value = 15
+      // 即使没有后端数据，也显示10个仪器（默认都是正常运行）
+      totalPointsCount.value = EX_SENSOR_NAMES.length
+      normalCount.value = EX_SENSOR_NAMES.length
+      warningCount.value = 0
+      alarmCount.value = 0
     }
   } catch (error) {
-    console.error('加载监测点状态统计失败:', error)
-    // 如果API调用失败，使用模拟数据
-    warningCount.value = 2
-    alarmCount.value = 1
-    normalCount.value = 15
+    console.error('加载仪器运行状态统计失败:', error)
+    // 即使出错，也显示10个仪器（默认都是正常运行）
+    totalPointsCount.value = EX_SENSOR_NAMES.length
+    normalCount.value = EX_SENSOR_NAMES.length
+    warningCount.value = 0
+    alarmCount.value = 0
   }
 }
 
 onMounted(() => {
   // 检查登录状态，如果未登录则触发登录事件
   if (!isAuthenticated()) {
-    console.warn('未登录，无法访问大屏')
     emit('show-login')
     return
   }
@@ -342,20 +478,39 @@ onMounted(() => {
   // 加载监测统计数据
   loadMonitoringStatistics()
 
-  // 设置定时刷新监测数据（每30秒刷新一次）
+  // 设置定时刷新监测数据（每10秒刷新一次，确保状态更新及时显示）
   monitoringInterval = setInterval(() => {
     loadMonitoringStatistics()
-  }, 30000)
+  }, 10000) // 从30秒改为10秒
   
-  // 监听SensorPanel的sensors数组，当它不为空时，设置Cesium点击回调
-  watch(() => sensorPanelRef.value?.sensors, (sensors) => {
-    if (sensors && sensors.length > 0 && cesiumSceneRef.value && cesiumSceneRef.value.setOnSensorClick) {
+  // 设置Cesium点击回调的函数
+  function setupSensorClickCallback() {
+    if (cesiumSceneRef.value && cesiumSceneRef.value.setOnSensorClick) {
       cesiumSceneRef.value.setOnSensorClick((sensorName) => {
-        console.log('Cesium 场景中点击测点:', sensorName)
         // 处理测点点击，显示弹窗
         handleSensorClickFromCesium(sensorName)
       })
-      console.log('✅ 测点点击回调已设置')
+      return true
+    } else {
+      return false
+    }
+  }
+  
+  // 立即尝试设置回调（不依赖sensors）
+  nextTick(() => {
+    // 延迟一点确保CesiumScene已经初始化
+    setTimeout(() => {
+      setupSensorClickCallback()
+    }, 1000)
+  })
+  
+  // 监听SensorPanel的sensors数组和cesiumSceneRef的变化
+  watch([() => sensorPanelRef.value?.sensors, () => cesiumSceneRef.value], () => {
+    // 当sensors加载完成或cesiumSceneRef可用时，确保回调已设置
+    if (sensorPanelRef.value?.sensors && sensorPanelRef.value.sensors.length > 0) {
+      setupSensorClickCallback()
+    } else if (cesiumSceneRef.value) {
+      setupSensorClickCallback()
     }
   }, { immediate: true })
   
@@ -373,24 +528,6 @@ onMounted(() => {
  */
 function initCoordinatePicker() {
   if (typeof window === 'undefined') return
-  
-  console.log('═══════════════════════════════════════════════════════')
-  console.log('📍 坐标拾取工具已就绪')
-  console.log('═══════════════════════════════════════════════════════')
-  console.log('')
-  console.log('📖 使用方法：')
-  console.log('   1. 调用 window.startCoordinatePicker() 开始拾取')
-  console.log('   2. 点击模型上的点，会在控制台输出坐标')
-  console.log('   3. 点击4个点形成一个矩形（或更多点形成不规则多边形）')
-  console.log('   4. 复制输出的坐标数组，用于配置坝段边界')
-  console.log('   5. 调用 window.stopCoordinatePicker() 停止拾取')
-  console.log('')
-  console.log('💡 提示：')
-  console.log('   - 可以画不规则多边形（至少3个顶点）')
-  console.log('   - 每个坝段需要定义一个多边形边界')
-  console.log('   - 坐标格式：[经度, 纬度, 高度(米)]')
-  console.log('')
-  console.log('═══════════════════════════════════════════════════════')
 }
 
 let coordinatePickerHandler = null
@@ -401,15 +538,12 @@ let currentSegmentCoordinates = []
  */
 function startCoordinatePicker() {
   if (!cesiumSceneRef.value) {
-    console.error('❌ CesiumScene 组件未加载')
     return null
   }
 
   // 检查 Cesium 是否可用
   const Cesium = window.Cesium
   if (!Cesium) {
-    console.error('❌ Cesium 未加载，请等待页面完全加载后再试')
-    console.log('💡 提示：请刷新页面，或等待几秒后重试')
     return null
   }
 
@@ -417,8 +551,6 @@ function startCoordinatePicker() {
   const viewer = cesiumSceneRef.value.getViewer?.()
   
   if (!viewer) {
-    console.error('❌ 无法获取 viewer，请确保页面已加载且模型已初始化')
-    console.log('💡 提示：请等待页面完全加载后再试，或刷新页面')
     return null
   }
 
@@ -444,25 +576,12 @@ function startCoordinatePicker() {
       const height = cartographic.height
       
       coordinates.push([lon, lat, height])
-      console.log(`📍 坝段 ${segmentIndex} - 已记录坐标 ${coordinates.length}: [${lon.toFixed(6)}, ${lat.toFixed(6)}, ${height.toFixed(2)}]`)
-      
-      // 每收集完一个坝段的坐标，输出
-      if (coordinates.length >= 3) {
-        console.log(`\n✅ 坝段 ${segmentIndex} 的坐标数组（至少3个点，可以继续点击添加更多点）：`)
-        console.log(JSON.stringify(coordinates, null, 2))
-        console.log('\n💡 提示：继续点击可以添加更多点，或按 Enter 键完成当前坝段')
-      }
-    } else {
-      console.warn('⚠️ 未拾取到坐标，请点击模型表面')
     }
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
   
   // 按 Enter 键完成当前坝段，开始下一个
   const keyHandler = (e) => {
     if (e.key === 'Enter' && coordinates.length >= 3) {
-      console.log(`\n🎯 坝段 ${segmentIndex} 完成！坐标数组：`)
-      console.log(JSON.stringify(coordinates, null, 2))
-      console.log(`\n继续点击模型为坝段 ${segmentIndex + 1} 拾取坐标...`)
       coordinates = []
       segmentIndex++
     }
@@ -474,11 +593,6 @@ function startCoordinatePicker() {
   coordinatePickerHandler = handler
   window.coordinatePickerHandler = handler
   window.coordinatePickerKeyHandler = keyHandler
-  
-  console.log('✅ 坐标拾取器已启动')
-  console.log('📝 点击模型上的点来记录坐标')
-  console.log('⌨️  按 Enter 键完成当前坝段，开始下一个坝段')
-  console.log('🛑 调用 window.stopCoordinatePicker() 停止拾取')
   
   return handler
 }
@@ -497,13 +611,9 @@ function stopCoordinatePicker() {
   if (coordinatePickerHandler) {
     coordinatePickerHandler.destroy()
     coordinatePickerHandler = null
-    console.log('✅ 坐标拾取器已停止')
   } else if (window.coordinatePickerHandler) {
     window.coordinatePickerHandler.destroy()
     window.coordinatePickerHandler = null
-    console.log('✅ 坐标拾取器已停止')
-  } else {
-    console.warn('⚠️ 没有活动的坐标拾取器')
   }
 }
 
@@ -563,8 +673,6 @@ function handleSensorSelect(sensor) {
     pointId = null
   }
   
-  console.log('测点选择:', sensorName, '→ pointId:', pointId)
-  
   // 设置选中的测点信息
   selectedSensorName.value = sensorName
   selectedSensorStatus.value = sensor.status
@@ -584,31 +692,41 @@ function handleSensorSelect(sensor) {
 
 // 处理从 Cesium 场景中点击的测点
 function handleSensorClickFromCesium(sensorName) {
-  console.log('Cesium点击测点:', sensorName)
-
   // 从SensorPanel获取测点信息
-  if (sensorPanelRef.value && sensorPanelRef.value.sensors) {
-    const sensors = sensorPanelRef.value.sensors
-    // 优先用 code 匹配
-    const pointCode = getSensorCode(sensorName)
-    let sensorData = sensors.find(s => s.code === pointCode)
-    // 如果没找到，再用 name 匹配
+  const sensors = sensorPanelRef.value?.sensors
+  
+  if (sensors && Array.isArray(sensors) && sensors.length > 0) {
+    // 直接通过 name 或 id 匹配（因为传感器数据结构中没有 code 字段）
+    let sensorData = sensors.find(s => s.name === sensorName || s.id === sensorName)
+    
+    // 如果没找到，尝试通过 pointCode 匹配（EX1 -> EX1-2-位移mm）
     if (!sensorData) {
-      sensorData = sensors.find(s => s.name === sensorName)
+      const pointCode = getSensorCode(sensorName)
+      if (pointCode) {
+        // 在 rawData 中查找 point_code 匹配的
+        sensorData = sensors.find(s => {
+          const code = s.rawData?.point_code || s.rawData?.name
+          return code && code.toUpperCase().includes(pointCode.toUpperCase())
+        })
+      }
     }
+    
     if (sensorData) {
-      console.log('Cesium点击测点:', sensorName, '→ 找到测点数据:', sensorData)
       // 调用handleSensorSelect函数，复用现有逻辑
       handleSensorSelect(sensorData)
       return
-    } else {
-      console.warn('Cesium点击未找到测点:', sensorName)
     }
   } else {
-    console.warn('sensorPanelRef未初始化')
+    // 如果 SensorPanel 还未加载完成，等待一下再重试
+    if (!sensorPanelRef.value?.sensors) {
+      setTimeout(() => {
+        handleSensorClickFromCesium(sensorName)
+      }, 500)
+      return
+    }
   }
 
-  // 如果找不到测点数据，设置默认值并显示弹窗
+  // 如果找不到测点数据，设置默认值并显示弹窗（但不会显示详细信息）
   selectedSensorName.value = sensorName
   selectedSensorStatus.value = 'normal'
   selectedPointId.value = null
@@ -655,22 +773,10 @@ if (typeof window !== 'undefined') {
   // 手动配置蒙版的快捷方法
   window.setupMask = (segmentBounds, debugMode = true) => {
     if (!cesiumSceneRef.value) {
-      console.error('❌ CesiumScene 组件未加载')
       return
     }
     
     if (!segmentBounds || !Array.isArray(segmentBounds) || segmentBounds.length === 0) {
-      console.error('❌ 请提供 segmentBounds 数组')
-      console.log('格式示例：')
-      console.log(`
-const segmentBounds = [
-  // 坝段 0
-  [[111.15, 30.80, 50], [111.16, 30.80, 50], [111.16, 30.79, 50], [111.15, 30.79, 50]],
-  // 坝段 1
-  [[111.16, 30.80, 50], [111.17, 30.80, 50], [111.17, 30.79, 50], [111.16, 30.79, 50]],
-  // ... 继续定义其他9个坝段
-];
-      `)
       return
     }
     
@@ -680,11 +786,6 @@ const segmentBounds = [
       totalSegments: segmentBounds.length,
       segmentBounds: segmentBounds
     })
-    
-    console.log(`✅ 已配置 ${segmentBounds.length} 个坝段的蒙版热区`)
-    if (debugMode) {
-      console.log('💡 调试模式已开启，热区显示为红色。配置完成后可设置 debugMode: false')
-    }
   }
 }
 </script>

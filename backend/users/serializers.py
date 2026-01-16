@@ -21,5 +21,5 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         # 继续使用 fields = "__all__"，便捷返回所有字段+自定义嵌套字段
         fields = "__all__"
-        # 标记自动生成的创建时间为只读
-        read_only_fields = ("create_time",)
+        # 标记自动生成的创建时间和user字段为只读（user字段在创建后不应被修改）
+        read_only_fields = ("create_time", "user")

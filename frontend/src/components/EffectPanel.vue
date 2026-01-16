@@ -34,7 +34,6 @@ function toggleEffect(effect) {
     enabled: effect.enabled,
     name: effect.name
   })
-  console.log('切换效果:', effect.name, effect.enabled ? '开启' : '关闭')
 }
 </script>
 

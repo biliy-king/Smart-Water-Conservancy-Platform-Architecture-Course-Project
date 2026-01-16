@@ -65,7 +65,6 @@ async function loadRealtimeData() {
         }
       }
     } catch (realtimeError) {
-      console.warn('实时数据接口失败，使用历史数据:', realtimeError)
     }
     
     // 如果实时数据失败，使用历史数据
