@@ -6,7 +6,7 @@
 
 **版本**: v1.1 (Phase 2 增强版)
 
-**最后更新**: 2026-01-11
+**最后更新**: 2026-01-16
 
 **认证方式**: JWT Bearer Token
 
@@ -213,7 +213,65 @@ export default api;
 
 ## 1. 用户认证接口
 
-### 1.1 用户登录
+### 1.1 用户注册
+
+- **接口**: `POST /api/users/register/`
+- **说明**: 新用户注册，自动创建用户档案（默认角色为viewer），注册成功后自动登录并返回JWT Token
+- **认证**: 无（允许匿名）
+- **Content-Type**: `application/json`
+
+**请求体**:
+```json
+{
+  "username": "newuser",
+  "password": "password123"
+}
+```
+
+**响应 (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "注册成功",
+  "tokens": {
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  },
+  "user": {
+    "id": 2,
+    "username": "newuser",
+    "email": "",
+    "role": "viewer",
+    "phone": null,
+    "department": null
+  }
+}
+```
+
+**错误响应 (400 Bad Request)**:
+```json
+{
+  "success": false,
+  "message": "用户名已存在"
+}
+```
+
+或
+
+```json
+{
+  "success": false,
+  "message": "密码长度至少6位"
+}
+```
+
+**说明**:
+- 用户名必须唯一，不能与已有用户重复
+- 密码长度至少6位
+- 注册成功后自动创建UserProfile，默认角色为`viewer`
+- 注册成功后自动登录，返回JWT Token，前端可直接使用
+
+### 1.2 用户登录
 
 - **接口**: `POST /api/users/login/`
 - **说明**: 用户名和密码登录，获取JWT Token
@@ -255,7 +313,7 @@ export default api;
 }
 ```
 
-### 1.2 刷新Token
+### 1.3 刷新Token
 
 - **接口**: `POST /api/users/refresh/`
 - **说明**: 使用 refresh token 获取新的 access token
@@ -290,7 +348,7 @@ export default api;
 }
 ```
 
-### 1.3 获取当前用户信息
+### 1.4 获取当前用户信息
 
 - **接口**: `GET /api/users/current/`
 - **说明**: 获取登录用户的完整信息
@@ -332,6 +390,7 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ### 2.1 获取大坝列表
 - **接口**: `GET /api/water-structures/structures/`
 - **说明**: 获取所有大坝信息（按创建时间倒序）
+- **认证**: ✅ 需要有效Token
 - **分页参数**: 
   - `page`: 页码（可选，默认第1页）
   - `page_size`: 每页数量（默认10条）
@@ -384,11 +443,44 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ### 2.2 获取单个大坝详情
 - **接口**: `GET /api/water-structures/structures/{id}/`
 - **说明**: 获取指定ID的大坝详细信息
+- **认证**: ✅ 需要有效Token
 - **路径参数**: 
   - `id`: 大坝ID（必填）
 - **响应**: 单个大坝完整信息（字段同上）
 
-### 2.3 创建新大坝
+### 2.3 获取大坝坝段列表
+- **接口**: `GET /api/water-structures/structures/{id}/segments/`
+- **说明**: 获取指定大坝的所有坝段汇总信息
+- **认证**: ✅ 需要有效Token
+- **路径参数**: 
+  - `id`: 大坝ID（必填）
+- **响应**: 坝段汇总列表
+
+**响应示例**:
+```json
+[
+  {
+    "segment_id": "segment_1",
+    "segment_name": "坝段1",
+    "device_count": 10,
+    "point_count": 10,
+    "warning_count": 2,
+    "normal_count": 8,
+    "has_warning": true
+  }
+]
+```
+
+### 2.4 获取单个坝段详情
+- **接口**: `GET /api/water-structures/structures/{id}/segments/{segment_id}/`
+- **说明**: 获取指定坝段的详细信息，包含该坝段下的所有设备和测点
+- **认证**: ✅ 需要有效Token
+- **路径参数**: 
+  - `id`: 大坝ID（必填）
+  - `segment_id`: 坝段ID（必填）
+- **响应**: 坝段详细信息（包含devices和points数组）
+
+### 2.5 创建新大坝
 - **接口**: `POST /api/water-structures/structures/`
 - **说明**: 新增大坝信息
 - **Content-Type**: `application/json`
@@ -410,14 +502,14 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ```
 - **响应**: 返回创建的大坝完整信息（包含自动生成的id和create_time）
 
-### 2.4 更新大坝信息
+### 2.6 更新大坝信息
 - **接口**: `PUT /api/water-structures/structures/{id}/`
 - **说明**: 更新指定大坝的完整信息
 - **路径参数**: `id` - 大坝ID
 - **请求体**: 同创建接口（需提供所有必填字段）
 - **响应**: 返回更新后的大坝完整信息
 
-### 2.5 删除大坝
+### 2.7 删除大坝
 - **接口**: `DELETE /api/water-structures/structures/{id}/`
 - **说明**: 删除指定大坝（同时会删除关联的所有设备、监测点和监测数据）
 - **路径参数**: `id` - 大坝ID
@@ -718,7 +810,19 @@ console.log(`上限: ${point.relevant_thresholds.max}${point.unit}`);
 **权限不足**: 403 Forbidden  
 **测点不存在**: 404 Not Found
 
-### 3.4 创建新监测点
+### 3.4 获取有数据的监测点列表
+- **接口**: `GET /api/water-structures/points/with_data/`
+- **说明**: 获取至少有一条监测数据的测点列表（用于筛选有效测点）
+- **认证**: ✅ 需要有效Token
+- **查询参数**: 无
+- **响应**: 测点列表（格式同列表接口）
+
+**说明**:
+- 只返回至少有一条监测数据的测点
+- 用于前端筛选和展示，避免显示无数据的测点
+- 返回格式与普通列表接口相同，包含完整的测点信息和Cesium坐标
+
+### 3.5 创建新监测点
 - **接口**: `POST /api/water-structures/points/`
 - **说明**: 新增监测点
 - **Content-Type**: `application/json`
@@ -742,14 +846,14 @@ console.log(`上限: ${point.relevant_thresholds.max}${point.unit}`);
 
 - **响应**: 返回创建的监测点完整信息（包含自动计算的cesium_world_coords）
 
-### 3.5 更新监测点信息
+### 3.6 更新监测点信息
 - **接口**: `PUT /api/water-structures/points/{id}/`
 - **说明**: 更新指定监测点的完整信息
 - **路径参数**: `id` - 监测点ID
 - **请求体**: 同创建接口
 - **响应**: 返回更新后的监测点完整信息（cesium_world_coords会自动重新计算）
 
-### 3.6 删除监测点
+### 3.7 删除监测点
 - **接口**: `DELETE /api/water-structures/points/{id}/`
 - **说明**: 删除指定监测点（同时会删除关联的所有监测数据）
 - **路径参数**: `id` - 监测点ID
@@ -760,7 +864,7 @@ console.log(`上限: ${point.relevant_thresholds.max}${point.unit}`);
 ## 5. 监测数据接口
 
 ### 5.1 获取监测数据列表
-- **接口**: `GET /api/monitoring/monitor-datas/`
+- **接口**: `GET /api/monitoring/data/`
 - **说明**: 获取所有监测数据（按监测时间倒序，最新数据在前）
 - **查询参数**: 
   - `page`: 页码（可选，默认第1页）
@@ -830,13 +934,13 @@ console.log(`上限: ${point.relevant_thresholds.max}${point.unit}`);
 ```
 
 ### 5.2 获取单条监测数据
-- **接口**: `GET /api/monitoring/monitor-datas/{id}/`
+- **接口**: `GET /api/monitoring/data/{id}/`
 - **说明**: 获取指定ID的监测数据详细信息
 - **路径参数**: `id` - 监测数据ID
 - **响应**: 单条监测数据完整信息
 
 ### 5.3 新增监测数据
-- **接口**: `POST /api/monitoring/monitor-datas/`
+- **接口**: `POST /api/monitoring/data/`
 - **说明**: 新增一条监测数据，系统会自动判断预警状态
 - **Content-Type**: `application/json`
 - **请求体示例**:
@@ -860,20 +964,20 @@ console.log(`上限: ${point.relevant_thresholds.max}${point.unit}`);
 - **响应**: 返回完整数据，包含自动判断的`status`字段
 
 ### 5.4 更新监测数据
-- **接口**: `PUT /api/monitoring/monitor-datas/{id}/`
+- **接口**: `PUT /api/monitoring/data/{id}/`
 - **说明**: 更新指定监测数据的完整信息
 - **路径参数**: `id` - 监测数据ID
 - **请求体**: 同新增接口
 - **响应**: 返回更新后的完整数据（status会自动重新计算）
 
 ### 5.5 删除监测数据
-- **接口**: `DELETE /api/monitoring/monitor-datas/{id}/`
+- **接口**: `DELETE /api/monitoring/data/{id}/`
 - **说明**: 删除指定监测数据
 - **路径参数**: `id` - 监测数据ID
 - **响应**: `204 No Content`
 
 ### 5.6 批量新增监测数据
-- **接口**: `POST /api/monitoring/monitor-datas/batch/`
+- **接口**: `POST /api/monitoring/data/batch/`
 - **说明**: 批量新增监测数据，适用于数据导入、历史数据补录等场景
 - **Content-Type**: `application/json`
 - **请求体示例**:
@@ -945,6 +1049,233 @@ console.log(`上限: ${point.relevant_thresholds.max}${point.unit}`);
       }
     }
   ]
+}
+```
+
+### 5.7 获取每个测点最新数据
+- **接口**: `GET /api/monitoring/data/latest_data/`
+- **说明**: 获取每个测点的最新一条监测数据（用于实时展示）
+- **认证**: ✅ 需要有效Token
+- **查询参数**: 
+  - `structure_id`: 大坝ID（可选，筛选特定大坝）
+  - `point_id`: 测点ID（可选，筛选特定测点）
+- **响应**: 最新数据列表
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1001,
+      "point": 1,
+      "point_info": {
+        "id": 1,
+        "point_code": "DQ-BD-001",
+        "cesium_world_coords": {...}
+      },
+      "monitor_time": "2026-01-11T10:00:00Z",
+      "inverted_plumb_up_down": 2.5,
+      "status": "normal",
+      ...
+    }
+  ]
+}
+```
+
+### 5.8 获取预警汇总
+- **接口**: `GET /api/monitoring/data/alert_summary/`
+- **说明**: 获取监测数据的预警状态汇总统计
+- **认证**: ✅ 需要有效Token
+- **查询参数**: 
+  - `structure_id`: 大坝ID（可选，筛选特定大坝）
+- **响应**: 预警汇总信息
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "summary": {
+    "status": {
+      "normal": 42,
+      "warning": 12,
+      "alarm": 4
+    },
+    "structures": [
+      {
+        "structure_id": 1,
+        "structure_name": "芹山水电站大坝",
+        "count": 58
+      }
+    ]
+  }
+}
+```
+
+### 5.9 获取指定测点历史数据
+- **接口**: `GET /api/monitoring/data/history/`
+- **说明**: 获取指定测点的历史监测数据（时间序列）
+- **认证**: ✅ 需要有效Token
+- **查询参数**: 
+  - `point_id`: 测点ID（必填）
+  - `start_time`: 开始时间（可选，ISO 8601格式）
+  - `end_time`: 结束时间（可选，ISO 8601格式）
+- **响应**: 历史数据列表
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1001,
+      "point": 1,
+      "monitor_time": "2026-01-11T09:00:00Z",
+      "inverted_plumb_up_down": 2.3,
+      "status": "normal",
+      ...
+    }
+  ]
+}
+```
+
+### 5.10 获取虚拟实时数据
+- **接口**: `GET /api/monitoring/latest/` 或 `GET /api/monitoring/latest/{point_id}/`
+- **说明**: 获取测点的虚拟实时数据（基于历史基线值+波动生成）
+- **认证**: ✅ 需要有效Token
+- **路径参数**: 
+  - `point_id`: 测点ID（可选，不提供则返回所有测点）
+- **响应**: 实时数据对象或数组
+
+**响应示例（单个测点）**:
+```json
+{
+  "success": true,
+  "data": {
+    "point_id": 1,
+    "point_code": "DQ-BD-001",
+    "device_type": "inverted_plumb_up_down",
+    "field_name": "inverted_plumb_up_down",
+    "value": 2.45,
+    "unit": "mm",
+    "timestamp": "2026-01-11T10:00:00Z",
+    "source": "baseline",
+    "confidence": 0.95,
+    "status": "normal",
+    "threshold": {
+      "min": -5.0,
+      "max": 5.0
+    }
+  }
+}
+```
+
+**响应示例（所有测点）**:
+```json
+{
+  "success": true,
+  "count": 58,
+  "data": [
+    {
+      "point_id": 1,
+      "point_code": "DQ-BD-001",
+      "value": 2.45,
+      "status": "normal",
+      ...
+    }
+  ]
+}
+```
+
+### 5.11 获取测点历史数据（分页）
+- **接口**: `GET /api/monitoring/history/{point_id}/`
+- **说明**: 获取指定测点的历史数据（真实值，支持分页）
+- **认证**: ✅ 需要有效Token
+- **路径参数**: 
+  - `point_id`: 测点ID（必填）
+- **查询参数**: 
+  - `days`: 查询天数（默认7天）
+  - `page`: 页码（默认1）
+  - `size`: 每页数量（默认100）
+- **响应**: 分页历史数据
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "point_code": "DQ-BD-001",
+    "device_type": "inverted_plumb_up_down",
+    "unit": "mm",
+    "records": [
+      {
+        "monitor_time": "2026-01-11T10:00:00Z",
+        "value": 2.45,
+        "status": "normal",
+        "is_special_marker": false
+      }
+    ],
+    "pagination": {
+      "total": 100,
+      "page": 1,
+      "size": 100,
+      "total_pages": 1
+    }
+  }
+}
+```
+
+**说明**:
+- `is_special_marker`: 标记特殊值（-999.1表示低于标尺水位，-999.2表示被遮挡无法观测）
+- 如果最近N天没有数据，则返回该监测点最新的记录
+
+### 5.12 获取预警摘要
+- **接口**: `GET /api/monitoring/alerts/`
+- **说明**: 获取所有测点的预警摘要统计
+- **认证**: ✅ 需要有效Token
+- **响应**: 预警摘要信息
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "total_alerts": 16,
+      "critical": 4,
+      "warning": 12,
+      "normal": 42
+    },
+    "alert_list": [
+      {
+        "point_id": 1,
+        "point_code": "DQ-BD-001",
+        "value": 6.5,
+        "status": "alarm",
+        ...
+      }
+    ]
+  }
+}
+```
+
+**说明**:
+- `alert_list`最多返回10条告警/预警记录
+- `critical`对应`alarm`状态，`warning`对应`warning`状态
+
+### 5.13 健康检查
+- **接口**: `GET /api/monitoring/health/`
+- **说明**: 服务健康检查接口（无需认证）
+- **认证**: 无（允许匿名访问）
+- **响应**: 服务状态信息
+
+**响应示例**:
+```json
+{
+  "status": "ok",
+  "service": "monitoring",
+  "timestamp": "2026-01-11T10:00:00Z",
+  "ml_enabled": false
 }
 ```
 
@@ -1480,12 +1811,27 @@ curl -X POST http://localhost:8000/api/water-structures/devices/ \
 | `/api/water-structures/points/{id}/` | GET | 获取测点详情 |
 | `/api/water-structures/points/{id}/` | PUT | 更新测点 |
 | `/api/water-structures/points/{id}/` | DELETE | 删除测点 |
-| `/api/monitoring/monitor-datas/` | GET | 获取监测数据列表 |
-| `/api/monitoring/monitor-datas/` | POST | 新增监测数据 |
-| `/api/monitoring/monitor-datas/batch/` | POST | 批量新增监测数据 |
-| `/api/monitoring/monitor-datas/{id}/` | GET | 获取单条数据 |
-| `/api/monitoring/monitor-datas/{id}/` | PUT | 更新监测数据 |
-| `/api/monitoring/monitor-datas/{id}/` | DELETE | 删除监测数据 |
+| `/api/users/register/` | POST | 用户注册 |
+| `/api/users/login/` | POST | 用户登录 |
+| `/api/users/refresh/` | POST | 刷新Token |
+| `/api/users/current/` | GET | 获取当前用户 |
+| `/api/water-structures/structures/{id}/segments/` | GET | 获取大坝坝段列表 |
+| `/api/water-structures/structures/{id}/segments/{segment_id}/` | GET | 获取坝段详情 |
+| `/api/water-structures/points/with_data/` | GET | 获取有数据的测点列表 |
+| `/api/monitoring/data/` | GET | 获取监测数据列表 |
+| `/api/monitoring/data/` | POST | 新增监测数据 |
+| `/api/monitoring/data/batch/` | POST | 批量新增监测数据 |
+| `/api/monitoring/data/{id}/` | GET | 获取单条数据 |
+| `/api/monitoring/data/{id}/` | PUT | 更新监测数据 |
+| `/api/monitoring/data/{id}/` | DELETE | 删除监测数据 |
+| `/api/monitoring/data/latest_data/` | GET | 获取每个测点最新数据 |
+| `/api/monitoring/data/alert_summary/` | GET | 获取预警汇总 |
+| `/api/monitoring/data/history/` | GET | 获取测点历史数据 |
+| `/api/monitoring/latest/` | GET | 获取所有测点实时数据 |
+| `/api/monitoring/latest/{point_id}/` | GET | 获取单个测点实时数据 |
+| `/api/monitoring/history/{point_id}/` | GET | 获取测点历史数据（分页） |
+| `/api/monitoring/alerts/` | GET | 获取预警摘要 |
+| `/api/monitoring/health/` | GET | 健康检查 |
 | `/api/users/user-profiles/` | GET | 获取用户列表 |
 | `/api/users/user-profiles/` | POST | 创建用户 |
 | `/api/users/user-profiles/{id}/` | GET | 获取用户详情 |
@@ -1494,6 +1840,5 @@ curl -X POST http://localhost:8000/api/water-structures/devices/ \
 
 ---
 
-**文档版本**: v1.0  
-**最后更新**: 2026-01-06  
-**维护者**: 感谢chat和豆包的支持
+**文档版本**: v1.2  
+**最后更新**: 2026-01-16
